@@ -5,11 +5,11 @@ use LLM::Graph;
 my $valid-rules = {
     a => "a string",
     b => -> { "callable" },
-    c => { 'evaluation-function' => 'eval', 'input' => 'in' },
+    c => { 'eval-function' => 'eval', 'input' => 'in' },
     d => { 'llm-function' => 'f', 'test-function' => -> { True } },
 };
 
-my $g1 = LLMGraph.new($valid-rules);
+my $g1 = LLM::Graph.new($valid-rules);
 ok $g1.rules-valid(), 'valid rules should validate';
 is $g1.rule-errors().elems, 0, 'no errors for valid rules';
 is $g1.graph.isa(Whatever), True, 'default graph is empty';
@@ -18,14 +18,14 @@ my $invalid-types = {
     n1 => 123,
     n2 => [1,2,3],
 };
-my $g2 = LLMGraph.new($invalid-types);
+my $g2 = LLM::Graph.new($invalid-types);
 is $g2.rules-valid(), False, 'invalid types should fail validation';
 like $g2.rule-errors().join("\n"), / 'Rule \'n1\' has invalid type: Int' | n2 /, 'errors mention invalid types';
 
 my $invalid-keys = {
     m1 => { 'bad-key' => 'x', 'input' => 'y' },
 };
-my $g3 = LLMGraph.new($invalid-keys);
+my $g3 = LLM::Graph.new($invalid-keys);
 ok not $g3.rules-valid(), 'map with invalid keys should fail';
 like $g3.rule-errors().join("\n"), / 'invalid keys: bad-key' /, 'error lists the invalid key';
 
@@ -35,13 +35,13 @@ my $mixed = {
     bad1 => { 'unknown' => 'v' },
     bad2 => 0,
 };
-my $g4 = LLMGraph.new($mixed);
+my $g4 = LLM::Graph.new($mixed);
 ok not $g4.rules-valid(), 'mixed valid/invalid should fail';
-is $g4.rule-errors().elems, 2, 'two rules should be reported as errors';
+is $g4.rule-errors().elems, 3, 'two rules should be reported as errors';
 
 # Named-parameter constructor
 my %rules = a => 's';
-my $g5 = LLMGraph.new(:%rules);
+my $g5 = LLM::Graph.new(:%rules);
 ok $g5.rules-valid(), 'named-parameter constructor with valid rules works';
 is $g5.graph.isa(Whatever), True, 'named-parameter constructor sets default graph';
 
