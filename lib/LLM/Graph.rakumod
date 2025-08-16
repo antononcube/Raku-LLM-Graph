@@ -105,10 +105,91 @@ class LLM::Graph {
                 }
             });
 
-        note (:@edges);
         # Make graph
         $!graph = Graph.new(@edges):d;
 
         return $!graph;
+    }
+
+    #======================================================
+    # Evaluation
+    #======================================================
+
+    method eval-node($node) {
+        with %!rules{$node}<result> {
+            return %!rules{$node}<result>;
+        }
+
+        my %inputs;
+        if %!rules{$node}<input> {
+            %inputs = %!rules{$node}<input>.map({ $_ => self.eval-node($_) })
+        }
+
+        # Node function info
+        my &func = %!rules{$node}<eval-function> // %!rules{$node}<llm-function> // %!rules{$node}<listable-llm-function>;
+        my %info = sub-info(&func);
+        my @args = %info<parameters>;
+
+        # Positional and named arguments
+        my @posArgs;
+        my %namedArgs;
+        for @args -> %rec {
+            if !%rec<named> { @posArgs[%rec<position>] = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} }
+            if %rec<named> { %namedArgs{%rec<name>} = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} }
+        }
+
+        # Passing positional arguments with non-default values is complicated.
+        my $result = &func.(|@posArgs, |%namedArgs);
+
+        # Register result
+        %!rules<result> = $result;
+
+        return $result;
+    }
+
+    method eval($nodes = Whatever) {
+
+        # Make the graph if not made already
+        # Maybe it should be always created.
+        if $!graph.isa(Whatever) { self.create-graph }
+
+        # Determine result nodes
+        my @resNodes = do given $nodes {
+            when Whatever {
+                $!graph.vertex-out-degree(:p).grep({ $_.value == 0 })».key
+            }
+
+            when $_ ~~ Str:D && (%!rules{$_}:exists) {
+                [$, ]
+            }
+
+            when $_ ~~ (List:D | Array:D | Seq:D) && $_.all ~~ Str:D && ([&&] $_.map(-> $k { %!rules{$k}:exists })) {
+                $_
+            }
+
+            default {
+                note 'The first argument is expected to be a node name, a list of node names, or Whatever.';
+                return Nil;
+            }
+        }
+
+        # Reverse the graph
+        my $gr = $!graph.reverse;
+
+        # Expand the hashmap of each node with inputs
+        for %!rules.kv -> $k, %v {
+            %!rules{$k} = %v , {input => [], result => Nil};
+            with $gr.adjacency-list{$k} {
+                %!rules{$k}<input> = $gr.adjacency-list{$k}.keys;
+            }
+        }
+
+        # For each result node recursively evaluate its inputs
+        for @resNodes -> $node {
+            # Make sure each evaluated node has the result in its hashmap
+            self.eval-node($node)
+        }
+
+        return self;
     }
 }
