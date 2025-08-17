@@ -9,10 +9,10 @@
   "auth": "zef:antononcube",
   "depends": [
     "JSON::Fast:ver<0.17+>",
-    "LLM::Functions:ver<0.1.7+>",
+    "LLM::Functions:ver<0.3.3+>",
     "LLM::Prompts:ver<0.2.5+>",
     "Text::SubParsers:ver<0.1.2+>",
-    "Graph:ver<0.0.29+>"
+    "Graph:ver<0.0.30+>"
   ],
   "build-depends": [],
   "test-depends": [],
@@ -23,6 +23,8 @@
   "license": "Artistic-2.0",
   "tags": [
     "ai",
+    "agentic",
+    "agentic-ai",
     "api",
     "generative",
     "graph",
