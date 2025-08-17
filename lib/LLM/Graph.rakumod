@@ -5,7 +5,7 @@ use LLM::Functions;
 use LLM::Tooling;
 
 class LLM::Graph {
-    has %!rules;
+    has %.rules;
     has $.graph;
 
     constant @ALLOWED_KEYS = <eval-function llm-function listable-llm-function input test-function test-function-input>;
@@ -108,6 +108,10 @@ class LLM::Graph {
         # Make graph
         $!graph = Graph.new(@edges):d;
 
+        # Verify
+        die 'Cyclic prompt dependencies are not supported.'
+        unless $!graph.is-acyclic;
+
         return $!graph;
     }
 
@@ -115,7 +119,7 @@ class LLM::Graph {
     # Evaluation
     #======================================================
 
-    method eval-node($node) {
+    method eval-node($node, :$pos-arg = '', *%named-args) {
         with %!rules{$node}<result> {
             return %!rules{$node}<result>;
         }
@@ -125,10 +129,15 @@ class LLM::Graph {
             %inputs = %!rules{$node}<input>.map({ $_ => self.eval-node($_) })
         }
 
+        note (:$node, :%inputs);
+
         # Node function info
         my &func = %!rules{$node}<eval-function> // %!rules{$node}<llm-function> // %!rules{$node}<listable-llm-function>;
         my %info = sub-info(&func);
-        my @args = %info<parameters>;
+        my @args = |%info<parameters>;
+
+        note (:%info);
+        note (:@args);
 
         # Positional and named arguments
         my @posArgs;
@@ -138,7 +147,13 @@ class LLM::Graph {
             if %rec<named> { %namedArgs{%rec<name>} = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} }
         }
 
+        #@posArgs .= grep(*.defined);
+        @posArgs .= map({ $_.defined ?? $_ !! $pos-arg });
+
+        note (:@posArgs);
+
         # Passing positional arguments with non-default values is complicated.
+        say (:$node, func => &func.(|@posArgs, |%namedArgs));
         my $result = &func.(|@posArgs, |%namedArgs);
 
         # Register result
@@ -147,7 +162,7 @@ class LLM::Graph {
         return $result;
     }
 
-    method eval($nodes = Whatever) {
+    method eval($pos-arg = '', *%named-args, :$nodes = Whatever) {
 
         # Make the graph if not made already
         # Maybe it should be always created.
@@ -176,18 +191,23 @@ class LLM::Graph {
         # Reverse the graph
         my $gr = $!graph.reverse;
 
+        note (:$!graph);
+
         # Expand the hashmap of each node with inputs
         for %!rules.kv -> $k, %v {
-            %!rules{$k} = %v , {input => [], result => Nil};
+            %!rules{$k} = [|%v , input => [], result => Nil].Hash;
+            note %!rules{$k}.raku;
             with $gr.adjacency-list{$k} {
-                %!rules{$k}<input> = $gr.adjacency-list{$k}.keys;
+                %!rules{$k}<input> = $gr.adjacency-list{$k}.keys.Array;
             }
         }
+
+        note (:%!rules);
 
         # For each result node recursively evaluate its inputs
         for @resNodes -> $node {
             # Make sure each evaluated node has the result in its hashmap
-            self.eval-node($node)
+            self.eval-node($node, :$pos-arg)
         }
 
         return self;
