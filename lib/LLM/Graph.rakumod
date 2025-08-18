@@ -5,8 +5,9 @@ use LLM::Functions;
 use LLM::Tooling;
 
 class LLM::Graph {
-    has %.rules;
-    has $.graph;
+    has %.rules is required;
+    has $.graph = Whatever;
+    has $.llm-evaluator is rw = Whatever;
 
     constant @ALLOWED_KEYS = <eval-function llm-function listable-llm-function input test-function test-function-input>;
     constant %ALLOWED = @ALLOWED_KEYS.map({ $_ => True }).hash;
@@ -15,15 +16,23 @@ class LLM::Graph {
     # Creators
     #======================================================
     submethod BUILD(:%!rules = %(),
-                    :$!graph = Whatever) {
+                    :$!graph = Whatever,
+                    :$!llm-evaluator = Whatever) {
+        if $!llm-evaluator.isa(Whatever) {
+            $!llm-evaluator = llm-evaluator(llm-configuration(Whatever));
+        }
     }
 
     multi method new(Hash $rules) {
         self.bless(:$rules, graph => Whatever);
     }
 
-    multi method new(:%rules = {}, :$graph = Whatever) {
-        self.bless(:%rules, :$graph);
+    multi method new(%rules, :$llm-evaluator = Whatever) {
+        self.bless(:%rules, graph => Whatever, :$llm-evaluator);
+    }
+
+    multi method new(:%rules!, :$llm-evaluator = Whatever) {
+        self.bless(:%rules, graph => Whatever, :$llm-evaluator);
     }
 
     #======================================================
@@ -72,8 +81,21 @@ class LLM::Graph {
                     %!rules{$k} = %( llm-function => llm-function($_) )
                 }
 
+                # TBD
+#                when LLM::Function:D {
+#                    %!rules{$k} = %( llm-function => $_ )
+#                }
+
+                when Routine:D {
+                    my $wrapper = $_.wrap(-> |c {
+                        my $res = callsame;
+                        llm-synthesize($res, :$!llm-evaluator)
+                    });
+                    %!rules{$k} = %( eval-function => $_, :$wrapper )
+                }
+
                 when Callable:D {
-                    %!rules{$k} = %( eval-function => $_ )
+                    die 'Only Routine:D callables are supported. Please use subs or annonymous subs as callable specs.'
                 }
 
                 when Map:D {
@@ -126,18 +148,18 @@ class LLM::Graph {
 
         my %inputs;
         if %!rules{$node}<input> {
-            %inputs = %!rules{$node}<input>.map({ $_ => self.eval-node($_) })
+            %inputs = %!rules{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_) })
         }
 
-        note (:$node, :%inputs);
+        #note (:$node, :%inputs);
 
         # Node function info
         my &func = %!rules{$node}<eval-function> // %!rules{$node}<llm-function> // %!rules{$node}<listable-llm-function>;
         my %info = sub-info(&func);
         my @args = |%info<parameters>;
 
-        note (:%info);
-        note (:@args);
+        #note (:%info);
+        #note (:@args);
 
         # Positional and named arguments
         my @posArgs;
@@ -151,13 +173,17 @@ class LLM::Graph {
         @posArgs .= map({ $_.defined ?? $_ !! $pos-arg });
 
         note (:@posArgs);
+        note (:%namedArgs);
 
         # Passing positional arguments with non-default values is complicated.
-        say (:$node, func => &func.(|@posArgs, |%namedArgs));
-        my $result = &func.(|@posArgs, |%namedArgs);
+        #note (:$node, func => &func.(|@posArgs, |%namedArgs));
+        my $result = &func(|@posArgs, |%namedArgs);
+
+        note (:&func);
+        note (:$result);
 
         # Register result
-        %!rules<result> = $result;
+        %!rules{$node}<result> = $result;
 
         return $result;
     }
@@ -191,23 +217,23 @@ class LLM::Graph {
         # Reverse the graph
         my $gr = $!graph.reverse;
 
-        note (:$!graph);
+        #note (:$!graph);
 
         # Expand the hashmap of each node with inputs
         for %!rules.kv -> $k, %v {
             %!rules{$k} = [|%v , input => [], result => Nil].Hash;
-            note %!rules{$k}.raku;
+            #note %!rules{$k}.raku;
             with $gr.adjacency-list{$k} {
                 %!rules{$k}<input> = $gr.adjacency-list{$k}.keys.Array;
             }
         }
 
-        note (:%!rules);
+        #note (:%!rules);
 
         # For each result node recursively evaluate its inputs
         for @resNodes -> $node {
             # Make sure each evaluated node has the result in its hashmap
-            self.eval-node($node, :$pos-arg)
+            self.eval-node($node, :$pos-arg, |%named-args)
         }
 
         return self;
