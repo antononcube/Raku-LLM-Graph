@@ -81,10 +81,10 @@ class LLM::Graph {
                     %!rules{$k} = %( llm-function => llm-function($_) )
                 }
 
-                # TBD
-#                when LLM::Function:D {
-#                    %!rules{$k} = %( llm-function => $_ )
-#                }
+                # &llm-function returns functors by default since "LLM::Functions:ver<0.3.3>"
+                when LLM::Function:D {
+                    %!rules{$k} = %( llm-function => $_ )
+                }
 
                 when Routine:D {
                     my $wrapper = $_.wrap(-> |c {
