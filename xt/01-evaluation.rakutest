@@ -1,0 +1,43 @@
+use v6.d;
+use Test;
+
+use lib <. lib>;
+use LLM::Graph;
+use Graph;
+
+my %rules =
+        poet1 => "write a short poem about summer",
+        poet2 => "write a haiku about winter",
+        judge => sub (Str:D $poet1, Str:D $poet2) {"Choose the best composition of your among these:\n\n1) Poem1: $poet1\n\n2) Poem2: $poet2\n\nand copy it:"}
+        ;
+
+## 1
+ok LLM::Graph.new(%rules);
+
+## 2
+my $g = LLM::Graph.new(%rules);
+isa-ok $g.create-graph, Graph:D;
+
+## 3
+my $poet1 = q:to/END/;
+Golden rays through skies so blue,
+Whispers warm in morning dew.
+Laughter dances on the breeze,
+Summer sings through rustling trees.
+
+Fields of green and oceans wide,
+Endless days where dreams abide.
+Sunset paints the world anew,
+Summer’s heart in every hue.
+END
+
+my $poet2 = q:to/END/;
+Silent snowflakes fall,
+Blanketing the earth in white,
+Winter’s breath is still.
+END
+
+say $g.eval(:$poet1, :$poet2).rules<judge>;
+#ok $g.eval(:$poet1, :$poet2);
+
+done-testing;
