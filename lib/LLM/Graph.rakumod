@@ -36,6 +36,17 @@ class LLM::Graph {
     }
 
     #======================================================
+    # Representation
+    #======================================================
+    multi method gist(::?CLASS:D:-->Str) {
+        return "LLM::Graph(size => {self.rules.elems}, nodes => {self.rules.keys.sort.join(', ')})";
+    }
+
+    method Str(){
+        return self.gist();
+    }
+
+    #======================================================
     # Validators
     #======================================================
 
@@ -218,6 +229,9 @@ class LLM::Graph {
             # Make sure each evaluated node has the result in its hashmap
             self.eval-node($node, :$pos-arg, |%named-args)
         }
+
+        # Unwrap wrapped subs
+        # %!rules .= map({ if $_.value<wrapper> { $_.value<eval-function>.unwrap($_.value<wrapper>) }; $_ });
 
         return self;
     }
