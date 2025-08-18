@@ -151,15 +151,10 @@ class LLM::Graph {
             %inputs = %!rules{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_) })
         }
 
-        #note (:$node, :%inputs);
-
         # Node function info
         my &func = %!rules{$node}<eval-function> // %!rules{$node}<llm-function> // %!rules{$node}<listable-llm-function>;
         my %info = sub-info(&func);
         my @args = |%info<parameters>;
-
-        #note (:%info);
-        #note (:@args);
 
         # Positional and named arguments
         my @posArgs;
@@ -172,15 +167,8 @@ class LLM::Graph {
         #@posArgs .= grep(*.defined);
         @posArgs .= map({ $_.defined ?? $_ !! $pos-arg });
 
-        note (:@posArgs);
-        note (:%namedArgs);
-
         # Passing positional arguments with non-default values is complicated.
-        #note (:$node, func => &func.(|@posArgs, |%namedArgs));
         my $result = &func(|@posArgs, |%namedArgs);
-
-        note (:&func);
-        note (:$result);
 
         # Register result
         %!rules{$node}<result> = $result;
@@ -217,18 +205,13 @@ class LLM::Graph {
         # Reverse the graph
         my $gr = $!graph.reverse;
 
-        #note (:$!graph);
-
         # Expand the hashmap of each node with inputs
         for %!rules.kv -> $k, %v {
             %!rules{$k} = [|%v , input => [], result => Nil].Hash;
-            #note %!rules{$k}.raku;
             with $gr.adjacency-list{$k} {
                 %!rules{$k}<input> = $gr.adjacency-list{$k}.keys.Array;
             }
         }
-
-        #note (:%!rules);
 
         # For each result node recursively evaluate its inputs
         for @resNodes -> $node {
