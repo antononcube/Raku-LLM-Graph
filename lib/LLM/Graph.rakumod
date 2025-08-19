@@ -57,13 +57,21 @@ class LLM::Graph {
     }
 
     #======================================================
+    # Management methods
+    #======================================================
+    method drop-results() {
+        %!rules .= map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
+        self;
+    }
+
+    #======================================================
     # Validators
     #======================================================
 
     method rule-errors() {
         my @errors;
         for %!rules.kv -> $name, $val {
-            if $val ~~ Str:D {
+            if $val ~~ Str:D || $val ~~ (Array:D | List:D | Seq:D) && $val.all ~~ Str:D {
                 next;
             }
             elsif $val ~~ Callable:D {
@@ -98,7 +106,7 @@ class LLM::Graph {
     method normalize-nodes() {
         for %!rules.kv -> $k, $node {
             given $node {
-                when Str:D {
+                when Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D {
                     %!rules{$k} = %( llm-function => llm-function($_) )
                 }
 
@@ -191,7 +199,6 @@ class LLM::Graph {
             if %rec<named> { %namedArgs{%rec<name>} = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} }
         }
 
-        #@posArgs .= grep(*.defined);
         @posArgs .= map({ $_.defined ?? $_ !! $pos-arg });
 
         # Passing positional arguments with non-default values is complicated.
