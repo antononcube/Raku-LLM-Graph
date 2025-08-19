@@ -131,7 +131,7 @@ class LLM::Graph {
     # Graph creation
     #======================================================
 
-    method create-graph(%named-args = %()) {
+    method create-graph($pos-arg = '', %named-args = %()) {
 
         # Make sure we have hashmaps
         self.normalize-nodes;
@@ -141,7 +141,7 @@ class LLM::Graph {
         %args .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
 
         # Add named args
-        %args = %args , %named-args;
+        %args = %args , %named-args , {'$_' => $pos-arg};
 
         # Make edges
         my @edges = (%args.keys X %args.keys).map( -> ($k1, $k2) {
@@ -167,13 +167,11 @@ class LLM::Graph {
 
     method eval-node($node, :$pos-arg = '', *%named-args) {
 
-        with %named-args{$node} {
-            return %named-args{$node};
-        }
+        return $pos-arg if $node eq '$_';
 
-        with %!rules{$node}<result> {
-            return %!rules{$node}<result>;
-        }
+        return %named-args{$node} with %named-args{$node};
+
+        return %!rules{$node}<result> with %!rules{$node}<result>;
 
         my %inputs;
         if %!rules{$node}<input> {
@@ -209,7 +207,7 @@ class LLM::Graph {
 
         # Make the graph if not made already
         # Maybe it should be always created.
-        if $!graph.isa(Whatever) { self.create-graph(%named-args) }
+        if $!graph.isa(Whatever) { self.create-graph($pos-arg, %named-args) }
 
         # Determine result nodes
         my @resNodes = do given $nodes {
