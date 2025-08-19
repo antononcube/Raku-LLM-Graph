@@ -101,9 +101,9 @@ say $gBestPoem.rules<judge>;
     - Just using `LLM::Graph`.
   - [ ] TODO Front-end simple sub(s)
     - Like `llm-graph`.
-  - [ ] DONE CLI interface that takes Raku or JSON specs of LLM-graphs
+  - [ ] TODO CLI interface that takes Raku or JSON specs of LLM-graphs
 - [ ] TODO Testing
-  - [ ] DONE LLM-graph initialization
+  - [X] DONE LLM-graph initialization
   - [ ] TODO Simple evaluations
 - [ ] TODO Documentation
   - [X] DONE Useful README
