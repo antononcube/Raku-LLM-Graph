@@ -36,6 +36,16 @@ class LLM::Graph {
     }
 
     #======================================================
+    # Clone
+    #======================================================
+    method clone() {
+        LLM::Graph.new(
+                rules => %!rules.clone,
+                graph => $!graph.defined ?? $!graph.clone !! Whatever,
+                llm-evaluator => $!llm-evaluator.defined ?? $!llm-evaluator.clone !! Whatever)
+    }
+
+    #======================================================
     # Representation
     #======================================================
     multi method gist(::?CLASS:D:-->Str) {
@@ -121,7 +131,7 @@ class LLM::Graph {
     # Graph creation
     #======================================================
 
-    method create-graph() {
+    method create-graph(%named-args = %()) {
 
         # Make sure we have hashmaps
         self.normalize-nodes;
@@ -129,6 +139,9 @@ class LLM::Graph {
         # For each node get the input arguments
         my %args = %!rules.map({ $_.key => $_.value<eval-function> // $_.value<llm-function> // $_.value<listable-llm-function> });
         %args .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
+
+        # Add named args
+        %args = %args , %named-args;
 
         # Make edges
         my @edges = (%args.keys X %args.keys).map( -> ($k1, $k2) {
@@ -153,13 +166,18 @@ class LLM::Graph {
     #======================================================
 
     method eval-node($node, :$pos-arg = '', *%named-args) {
+
+        with %named-args{$node} {
+            return %named-args{$node};
+        }
+
         with %!rules{$node}<result> {
             return %!rules{$node}<result>;
         }
 
         my %inputs;
         if %!rules{$node}<input> {
-            %inputs = %!rules{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_) })
+            %inputs = %!rules{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
         }
 
         # Node function info
@@ -191,7 +209,7 @@ class LLM::Graph {
 
         # Make the graph if not made already
         # Maybe it should be always created.
-        if $!graph.isa(Whatever) { self.create-graph }
+        if $!graph.isa(Whatever) { self.create-graph(%named-args) }
 
         # Determine result nodes
         my @resNodes = do given $nodes {
