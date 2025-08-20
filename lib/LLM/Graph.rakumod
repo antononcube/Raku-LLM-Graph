@@ -4,8 +4,10 @@ use Graph;
 use LLM::Functions;
 use LLM::Tooling;
 use Hash::Merge;
+use LLM::Graph::Formatish;
 
-class LLM::Graph {
+class LLM::Graph
+        does LLM::Graph::Formatish {
     has %.rules is required;
     has $.graph = Whatever;
     has $.llm-evaluator is rw = Whatever;
