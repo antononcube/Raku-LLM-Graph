@@ -67,8 +67,9 @@ $gBestPoem.eval(topic => 'hockey', style => 'limerick');
 Computations dependency graph:
 
 ```raku, eval=FALSE
-$gBestPoem.graph.dot(engine => 'dot', node-shape => 'ellipse', node-width => 1.2 ):svg
+$gBestPoem.dot(engine => 'dot', node-shape => 'ellipse', node-width => 1.2 ):svg
 ```
+
 
 ![](./docs/Three-poets-graph.svg)
 
@@ -79,17 +80,17 @@ The result by the terminal node("judge"):
 say $gBestPoem.rules<judge>;
 ```
 ```
-# {eval-function => sub { }, input => [poet2 poet3 poet1], result => I think the best composition among these is Poem1 for its vivid imagery and rhythmic flow:
+# {eval-function => sub { }, input => [poet2 poet1 poet3], result => I think Poem1 is the best among these for its vivid imagery and flowing rhythm. Here it is:
 # 
-# Golden rays that warm the air,  
-# Whispers of a breeze so fair,  
-# Laughter dances, skies so blue,  
-# Summer’s song in every hue.  
+# Golden rays on warm embrace,  
+# Whispers of the sun’s soft grace.  
+# Fields alive with blooms that gleam,  
+# Summer dances in a dream.  
 # 
-# Fields alive with blooming bright,  
-# Days that stretch into the night,  
-# Moments sweet, both wild and free—  
-# Summer’s heart beats endlessly., wrapper => Routine::WrapHandle.new}
+# Ocean’s hum and laughter’s song,  
+# Days that stretch forever long.  
+# Hearts alight with carefree fire,  
+# Summer sings our deep desire., test-function-input => [], wrapper => Routine::WrapHandle.new}
 ```
 
 -----
@@ -100,7 +101,7 @@ say $gBestPoem.rules<judge>;
   - [X] DONE Initial _useful_ version
     - Just using `LLM::Graph`.
   - [X] DONE Conditional evaluation per node
-      - Using a test function
+    - Using a test function
   - [ ] TODO Front-end simple sub(s)
     - Like `llm-graph`.
   - [X] DONE Special DOT representation

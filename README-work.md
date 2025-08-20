@@ -61,7 +61,7 @@ $gBestPoem.eval(topic => 'hockey', style => 'limerick');
 Computations dependency graph:
 
 ```raku, eval=FALSE
-$gBestPoem.graph.dot(engine => 'dot', node-shape => 'ellipse', node-width => 1.2 ):svg
+$gBestPoem.dot(engine => 'dot', node-shape => 'ellipse', node-width => 1.2 ):svg
 ```
 
 ![](./docs/Three-poets-graph.svg)
