@@ -17,7 +17,8 @@
   "build-depends": [],
   "test-depends": [],
   "provides": {
-    "LLM::Graph": "lib/LLM/Graph.rakumod"
+    "LLM::Graph": "lib/LLM/Graph.rakumod",
+    "LLM::Graph::Formatish": "lib/LLM/Graph/Formatish.rakumod"
   },
   "resources": [],
   "license": "Artistic-2.0",
