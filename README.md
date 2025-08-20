@@ -99,6 +99,8 @@ say $gBestPoem.rules<judge>;
 - [ ] TODO Implementation
   - [X] DONE Initial _useful_ version
     - Just using `LLM::Graph`.
+  - [ ] TODO Conditional evaluation per node
+      - Using a test function
   - [ ] TODO Front-end simple sub(s)
     - Like `llm-graph`.
   - [ ] TODO CLI interface that takes Raku or JSON specs of LLM-graphs
