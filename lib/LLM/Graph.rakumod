@@ -3,6 +3,7 @@ use v6.d;
 use Graph;
 use LLM::Functions;
 use LLM::Tooling;
+use Hash::Merge;
 
 class LLM::Graph {
     has %.rules is required;
@@ -84,8 +85,13 @@ class LLM::Graph {
                 }
                 if ($val.keys (&) <eval-function llm-function listable-llm-function>).elems != 1 {
                     @errors.push(
-                            "Rule '$name' has invalid spec --" ~
+                            "Rule '$name' has invalid spec -- " ~
                             'each node must be defined with only one of "eval-function", "llm-function", or "listable-llm-function".')
+                }
+                if ($val<test-function>:exists) && $val<test-function> !~~ Callable:D {
+                    @errors.push(
+                            "Rule '$name' has invalid spec -- " ~
+                            'node\'s test function must be a Callable:D object.')
                 }
             }
             else {
@@ -148,14 +154,20 @@ class LLM::Graph {
         my %args = %!rules.map({ $_.key => $_.value<eval-function> // $_.value<llm-function> // $_.value<listable-llm-function> });
         %args .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
 
+        # For each node get the test function input arguments (if any)
+        my %testArgs = %!rules.grap({ $_.value<test-function> }).map({ $_.key => $_.value<test-function> });
+        %testArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
+
         # Add named args
         %args = %args , %named-args , {'$_' => $pos-arg};
+        my %allArgs = merge-hash(%args , %testArgs, :!positional-append);
 
         # Make edges
-        my @edges = (%args.keys X %args.keys).map( -> ($k1, $k2) {
-                my $v2 = %args{$k2};
-                if $k1 ∈ $v2 || $k1 ∈ $v2».subst(/ ^ '$'/) {
-                    %( from => $k1, to => $k2 )
+        my @edges = (%allArgs.keys X %allArgs.keys).map( -> ($k1, $k2) {
+                my $v2 = %allArgs{$k2};
+                if $k1 ∈ $v2 || $k1 ∈ $v2».subst(/ ^ <[$%@]> /) {
+                    my $weight = 2 * +(%testArgs{$k2}:exists) + +(%args{$k2}:exists);
+                    %( from => $k1, to => $k2, :$weight )
                 }
             });
 
