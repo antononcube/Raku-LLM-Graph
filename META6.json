@@ -1,38 +1,36 @@
 {
-  "name": "LLM::Graph",
-  "description": "LLM::Graph can be used to efficiently schedule and combine multiple LLM generation steps for an optimal evaluation managing LLM submissions' concurrency.",
-  "version": "0.0.1",
-  "perl": "6.*",
-  "authors": [
-    "Anton Antonov"
-  ],
-  "auth": "zef:antononcube",
-  "depends": [
-    "JSON::Fast:ver<0.17+>",
-    "LLM::Functions:ver<0.4.0+>",
-    "LLM::Prompts:ver<0.2.5+>",
-    "Text::SubParsers:ver<0.1.2+>",
-    "Graph:ver<0.0.30+>"
-  ],
-  "build-depends": [],
-  "test-depends": [],
-  "provides": {
-    "LLM::Graph": "lib/LLM/Graph.rakumod"
-  },
-  "resources": [],
-  "license": "Artistic-2.0",
-  "tags": [
-    "ai",
-    "agentic",
-    "agentic-ai",
-    "api",
-    "generative",
-    "graph",
-    "llm graph",
-    "llm",
-    "web service",
-    "web"
-  ],
-  "api": "0",
-  "source-url": "https://github.com/antononcube/Raku-LLM-Graph"
+    "name": "LLM::Graph",
+    "description": "LLM::Graph can be used to efficiently schedule and combine multiple LLM generation steps for an optimal evaluation managing LLM submissions' concurrency.",
+    "version": "0.0.1",
+    "authors": [
+        "Anton Antonov"
+    ],
+    "auth": "zef:antononcube",
+    "depends": [
+        "Graph:ver<0.0.30+>",
+        "Hash::Merge:ver<2.0.0+>:api<2+>",
+        "JSON::Fast:ver<0.17+>",
+        "LLM::Functions:ver<0.4.0+>",
+        "LLM::Prompts:ver<0.2.5+>",
+        "Text::SubParsers:ver<0.1.2+>"
+    ],
+    "build-depends": [],
+    "provides": {
+        "LLM::Graph": "lib/LLM/Graph.rakumod"
+    },
+    "license": "Artistic-2.0",
+    "tags": [
+        "ai",
+        "agentic",
+        "agentic-ai",
+        "api",
+        "generative",
+        "graph",
+        "llm graph",
+        "llm",
+        "web service",
+        "web"
+    ],
+    "api": "0",
+    "source-url": "https://github.com/antononcube/Raku-LLM-Graph"
 }
