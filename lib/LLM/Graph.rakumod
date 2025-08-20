@@ -112,7 +112,7 @@ class LLM::Graph {
     method normalize-nodes() {
         for %!rules.kv -> $k, $node {
             given $node {
-                when Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D {
+                when $_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D {
                     %!rules{$k} = %( llm-function => llm-function($_) )
                 }
 
@@ -151,22 +151,22 @@ class LLM::Graph {
         self.normalize-nodes;
 
         # For each node get the input arguments
-        my %args = %!rules.map({ $_.key => $_.value<eval-function> // $_.value<llm-function> // $_.value<listable-llm-function> });
-        %args .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
+        my %funcArgs = %!rules.map({ $_.key => $_.value<eval-function> // $_.value<llm-function> // $_.value<listable-llm-function> });
+        %funcArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
 
         # For each node get the test function input arguments (if any)
-        my %testArgs = %!rules.grap({ $_.value<test-function> }).map({ $_.key => $_.value<test-function> });
+        my %testArgs = %!rules.grep({ $_.value<test-function> }).map({ $_.key => $_.value<test-function> });
         %testArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
 
         # Add named args
-        %args = %args , %named-args , {'$_' => $pos-arg};
-        my %allArgs = merge-hash(%args , %testArgs, :!positional-append);
+        my %args = %funcArgs.clone , %named-args , {'$_' => $pos-arg};
+        my %allArgs = merge-hash(%args , %testArgs, :positional-append);
 
         # Make edges
         my @edges = (%allArgs.keys X %allArgs.keys).map( -> ($k1, $k2) {
                 my $v2 = %allArgs{$k2};
                 if $k1 ∈ $v2 || $k1 ∈ $v2».subst(/ ^ <[$%@]> /) {
-                    my $weight = 2 * +(%testArgs{$k2}:exists) + +(%args{$k2}:exists);
+                    my $weight = 2 * +((%testArgs{$k2}:exists) && $k1 ∈ %testArgs{$k2}».subst(/ ^ <[$%@]> /)) + +((%funcArgs{$k2}:exists) && $k1 ∈ %funcArgs{$k2}».subst(/ ^ <[$%@]> /));
                     %( from => $k1, to => $k2, :$weight )
                 }
             });
@@ -185,21 +185,9 @@ class LLM::Graph {
     # Evaluation
     #======================================================
 
-    method eval-node($node, :$pos-arg = '', *%named-args) {
-
-        return $pos-arg if $node eq '$_';
-
-        return %named-args{$node} with %named-args{$node};
-
-        return %!rules{$node}<result> with %!rules{$node}<result>;
-
-        my %inputs;
-        if %!rules{$node}<input> {
-            %inputs = %!rules{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
-        }
+    method eval-func(&func, %inputs, :$pos-arg = '') {
 
         # Node function info
-        my &func = %!rules{$node}<eval-function> // %!rules{$node}<llm-function> // %!rules{$node}<listable-llm-function>;
         my %info = sub-info(&func);
         my @args = |%info<parameters>;
 
@@ -215,6 +203,57 @@ class LLM::Graph {
 
         # Passing positional arguments with non-default values is complicated.
         my $result = &func(|@posArgs, |%namedArgs);
+
+        return $result;
+    }
+
+    method eval-test-node($node, :$pos-arg = '', *%named-args) {
+
+        return $pos-arg if $node eq '$_';
+
+        return %named-args{$node} with %named-args{$node};
+
+        return True without %!rules{$node}<test-function>;
+
+        return %!rules{$node}<test-function-result> with %!rules{$node}<test-function-result>;
+
+        my %inputs;
+        if %!rules{$node}<test-function-input> {
+            %inputs = %!rules{$node}<test-function-input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
+        }
+
+        # Node function info
+        my &func = %!rules{$node}<test-function>;
+        my $result = self.eval-func(&func, %inputs, :$pos-arg);
+
+        # Register result -- is this needed?
+        %!rules{$node}<test-function-result> = $result;
+
+        return $result;
+    }
+
+    method eval-node($node, :$pos-arg = '', *%named-args) {
+
+        return $pos-arg if $node eq '$_';
+
+        return %named-args{$node} with %named-args{$node};
+
+        return %!rules{$node}<result> with %!rules{$node}<result>;
+
+        if !self.eval-test-node($node, :$pos-arg, |%named-args) {
+            # Register non-result
+            %!rules{$node}<result> = Nil;
+            return Nil;
+        }
+
+        my %inputs;
+        if %!rules{$node}<input> {
+            %inputs = %!rules{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
+        }
+
+        # Node function info
+        my &func = %!rules{$node}<eval-function> // %!rules{$node}<llm-function> // %!rules{$node}<listable-llm-function>;
+        my $result = self.eval-func(&func, %inputs, :$pos-arg);
 
         # Register result
         %!rules{$node}<result> = $result;
@@ -253,9 +292,15 @@ class LLM::Graph {
 
         # Expand the hashmap of each node with inputs
         for %!rules.kv -> $k, %v {
-            %!rules{$k} = [|%v , input => [], result => Nil].Hash;
+            %!rules{$k} = [|%v , input => [], test-function-input => [], result => Nil].Hash;
             with $gr.adjacency-list{$k} {
-                %!rules{$k}<input> = $gr.adjacency-list{$k}.keys.Array;
+                if %v<test-function>:exists {
+                    # See how the dependency graph is made -- test-function input edges have weight 2 or 3
+                    %!rules{$k}<input> = $gr.adjacency-list{$k}.grep({ $_.value == 1 }).keys.Array;
+                    %!rules{$k}<test-function-input> = $gr.adjacency-list{$k}.grep({ $_.value >= 2 }).Hash.keys.Array;
+                } else {
+                    %!rules{$k}<input> = $gr.adjacency-list{$k}.keys.Array;
+                }
             }
         }
 
