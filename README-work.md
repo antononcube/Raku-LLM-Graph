@@ -84,6 +84,7 @@ say $gBestPoem.rules<judge>;
     - Using a test function
   - [ ] TODO Front-end simple sub(s)
     - Like `llm-graph`.
+  - [X] DONE Special DOT representation
   - [ ] TODO CLI interface that takes Raku or JSON specs of LLM-graphs
 - [ ] TODO Testing
   - [X] DONE LLM-graph initialization
