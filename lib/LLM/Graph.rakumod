@@ -166,7 +166,8 @@ class LLM::Graph {
         my @edges = (%allArgs.keys X %allArgs.keys).map( -> ($k1, $k2) {
                 my $v2 = %allArgs{$k2};
                 if $k1 ∈ $v2 || $k1 ∈ $v2».subst(/ ^ <[$%@]> /) {
-                    my $weight = 2 * +((%testArgs{$k2}:exists) && $k1 ∈ %testArgs{$k2}».subst(/ ^ <[$%@]> /)) + +((%funcArgs{$k2}:exists) && $k1 ∈ %funcArgs{$k2}».subst(/ ^ <[$%@]> /));
+                    my $weight = 2 * +((%testArgs{$k2}:exists) && ($k1 ∈ %testArgs{$k2} || $k1 ∈ %testArgs{$k2}».subst(/ ^ <[$%@]> /)));
+                    $weight += +((%funcArgs{$k2}:exists) && ($k1 ∈ %funcArgs{$k2} || $k1 ∈ %funcArgs{$k2}».subst(/ ^ <[$%@]> /)));
                     %( from => $k1, to => $k2, :$weight )
                 }
             });
@@ -296,7 +297,7 @@ class LLM::Graph {
             with $gr.adjacency-list{$k} {
                 if %v<test-function>:exists {
                     # See how the dependency graph is made -- test-function input edges have weight 2 or 3
-                    %!rules{$k}<input> = $gr.adjacency-list{$k}.grep({ $_.value == 1 }).keys.Array;
+                    %!rules{$k}<input> = $gr.adjacency-list{$k}.grep({ $_.value == 1 }).Hash.keys.Array;
                     %!rules{$k}<test-function-input> = $gr.adjacency-list{$k}.grep({ $_.value >= 2 }).Hash.keys.Array;
                 } else {
                     %!rules{$k}<input> = $gr.adjacency-list{$k}.keys.Array;
