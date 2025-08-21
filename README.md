@@ -9,6 +9,9 @@ The package follows the design discussed in the video
 and the corresponding Wolfram Language function
 [LLMGraph](https://reference.wolfram.com/language/ref/LLMGraph.html), [WRIf1].
 
+The package implementation heavily relies on the package "LLM::Functions", [AAp1].
+Graph functionalities are provided by "Graph", [AAp3].
+
 -----
 
 ## Installation
@@ -141,7 +144,7 @@ Computations dependency graph:
 $gBestPoem.dot(engine => 'dot', node-shape => 'ellipse', node-width => 1.2 ):svg
 ```
 
-![](./docs/Three-poets-graph.svg)
+![](https://raw.githubusercontent.com/antononcube/Raku-LLM-Graph/refs/heads/main/docs/Three-poets-graph.svg)
 
 
 The result by the terminal node("judge"):
@@ -160,6 +163,46 @@ say $gBestPoem.rules<judge>;
 
 -----
 
+## Implementation notes
+
+### LLM functors introduction
+
+- Since the very beginning, the functions produced by all functions were actually blocks (`Block:D`).
+  It was in my TODO list instead of blocks to produce functors (function objects).
+  For "LLM::Graph" that is/was necessary in order to make the node-specs processing more adequate.
+  - So, `llm-function` produces functors (`LLM::Function` objects) by default now.
+  - The option "type" can be used to get blocks.
+
+### No need for topological sorting
+
+- I thought that I should use the graph algorithms for topological sorting in order to navigate node dependencies
+  during evaluation.
+- Turned out, that is not necessary -- simple recursion is sufficient.
+  - From the Notes specs, a directed graph (`Graph` object) is made.
+  - `Graph`'s method `reverse` is used to get the directed computational dependency graph.
+  - That latter graph is used in the node-evaluation recursion.
+
+### Wrapping "string templates"
+
+- It is convenient to specify LLM functions with "string templates."
+- Since there are no separate "string template" objects in Raku, subs or blocks are used.
+  - For example:
+  - `sub ($country, $year) {"What is the GDP of $country in $year"}` (sub)
+  - `{"What is the GDP of $^a in $^b?"}` (block)
+- String template subs are wrapped to be executed first and then the result is LLM-submitted.
+- Since the blocks cannot be wrapped, currently "LLM::Graph" refuses to process them.
+  - It is planned later versions of "LLM::Graph" to process blocks.
+
+### Special graph plotting
+
+- Of course it is nice to have the graph visualized.
+- Instead of the generic graph visualization provided by the package "Graph" (method `dot`)
+  A more informative graph plot is produced in which the different types of notes have different shapes.
+  - The graph vertex shapes help distinguishing LLM-nodes from just-Raku-nodes.
+  - Also, test function dependencies are designated with dashed arrows.
+
+-----
+
 ## TODO
 
 - [ ] TODO Implementation
@@ -171,6 +214,7 @@ say $gBestPoem.rules<judge>;
     - Like `llm-graph`.
   - [X] DONE Special DOT representation
   - [ ] TODO CLI interface that takes Raku or JSON specs of LLM-graphs
+  - [ ] TODO Asynchronous execution support
 - [ ] TODO Testing
   - [X] DONE LLM-graph initialization
   - [ ] TODO Simple evaluations
