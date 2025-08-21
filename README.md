@@ -1,5 +1,11 @@
 # LLM::Graph
 
+[![MacOS](https://github.com/antononcube/Raku-LLM-Graph/actions/workflows/macos.yml/badge.svg)](https://github.com/antononcube/Raku-LLM-Graph/actions/workflows/macos.yml)
+[![Linux](https://github.com/antononcube/Raku-LLM-Graph/actions/workflows/linux.yml/badge.svg)](https://github.com/antononcube/Raku-LLM-Graph/actions/workflows/linux.yml)
+[![Win64](https://github.com/antononcube/Raku-LLM-Graph/actions/workflows/windows.yml/badge.svg)](https://github.com/antononcube/Raku-LLM-Graph/actions/workflows/windows.yml)
+[![https://raku.land/zef:antononcube/LLM::Functions](https://raku.land/zef:antononcube/LLM::Graph/badges/version)](https://raku.land/zef:antononcube/LLM::Graph)
+
+
 Raku package used to efficiently schedule and combine multiple LLM generation steps.
 
 The package provides the class `LLM::Graph` with which computations are orchestrated.
