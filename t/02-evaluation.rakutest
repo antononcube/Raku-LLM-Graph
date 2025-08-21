@@ -1,0 +1,30 @@
+use v6.d;
+use Test;
+
+# use lib <. lib>;
+use LLM::Graph;
+use Graph;
+
+my %rules =
+        fun1 => { eval-function => {'out1'} },
+        fun2 => { eval-function => {'out2'} },
+        combine => { eval-function => sub (Str:D $fun1, Str:D $fun2) { "$fun1 : $fun2" } }
+        ;
+
+## 1
+ok LLM::Graph.new(%rules);
+
+## 2
+my $g = LLM::Graph.new(%rules);
+isa-ok $g.create-graph, Graph:D;
+
+## 3
+is $g.eval.rules<combine><result>, 'out1 : out2';
+
+## 4
+is
+        $g(fun1 => 'in1', fun2 => 'in2').rules<combine><result>,
+        'in1 : in2',
+        'iverriding inputs; graph object is callable';
+
+done-testing;
