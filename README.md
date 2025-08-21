@@ -4,6 +4,11 @@ Raku package used to efficiently schedule and combine multiple LLM generation st
 
 The package provides the class `LLM::Graph` with which computations are orchestrated.
 
+The package follows the design discussed in the video
+["Live CEOing Ep 886: Design Review of LLMGraph"](https://www.youtube.com/watch?v=ewU83vHwN8Y), [WRIv1],
+and the corresponding Wolfram Language function
+[LLMGraph](https://reference.wolfram.com/language/ref/LLMGraph.html), [WRIf1].
+
 -----
 
 ## Installation
