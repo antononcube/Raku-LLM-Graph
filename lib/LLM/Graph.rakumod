@@ -7,6 +7,7 @@ use Hash::Merge;
 use LLM::Graph::Formatish;
 
 class LLM::Graph
+        does Callable
         does LLM::Graph::Formatish {
     has %.rules is required;
     has $.graph = Whatever;
@@ -62,8 +63,17 @@ class LLM::Graph
     #======================================================
     # Management methods
     #======================================================
-    method drop-results() {
+    multi method drop-result() {
         %!rules .= map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
+        self;
+    }
+
+    multi method drop-result($node) {
+        self.drop-result([$node,]);
+    }
+
+    multi method drop-result(@nodes) {
+        %!rules = %!rules.grep({ $_.key ∈ @nodes }).map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
         self;
     }
 
@@ -318,4 +328,6 @@ class LLM::Graph
 
         return self;
     }
+
+    method CALL-ME(|c) { self.eval(|c); }
 }
