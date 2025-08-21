@@ -2,6 +2,8 @@
 
 Raku package used to efficiently schedule and combine multiple LLM generation steps.
 
+The package provides the class `LLM::Graph` with which computations are orchestrated.
+
 -----
 
 ## Installation
@@ -20,6 +22,70 @@ To install the package from the GitHub repository use the shell command:
 ```
 zef install https://github.com/antononcube/Raku-LLM-Graph.git
 ```
+
+-----
+
+## Design
+
+Creation of an `LLM::Graph` object in which "node_i" evaluates `fun_i` with results from parent nodes:
+
+```
+LLM::Graph.new({name-1 => fun_1, ...})
+```
+
+`LLM::Graph` objects are callables. Getting the result of a graph on `input`:
+
+```
+LLM::Graph.new(...)(input)
+```
+
+### Details and options
+
+- An `LLM::Graph` enables efficient scheduling and integration of multiple LLM generation steps, optimizing evaluation by managing the concurrency of LLM requests.
+
+- Using `LLM::Graph` requires (LLM) service authentication and internet connectivity.
+  - Authentication and internet are required if all graph nodes are non-LLM computation specs.
+  
+- Possible values of the node function spec `fun_i` are:
+
+|                         |                                                      |
+|-------------------------|------------------------------------------------------|
+| `llm-function(...)`     | an `llm-function` for LLM submission                 |
+| `sub (...) {...}`       | a sub for Raku computation submission                |
+| `%(key_i => val_i ...)` | a `Map` with detailed node specifications `nodespec` |
+
+* Possible node specifications keys in `nodespec` are:
+
+|                         |                                                   |
+|-------------------------|---------------------------------------------------|
+| "eval-function"         | arbitrary Raku sub                                |
+| "llm-function"          | LLM evaluation via an `llm-function`              |
+| "listable-llm-function" | threaded LLM evaluation on list input values      |
+| "input"                 | explicit list of nodes required as sub arguments  |
+| "test-function"         | whether the node should run                       |
+| "test-function-input"   | explicit list of nodes required as test arguments |
+
+
+- Each node must be defined with only one of "eval-function", "llm-function", or "listable-llm-function".
+
+- The "test-function" specification makes a node evaluation conditional on the results from other nodes.
+
+- Possible "llm-function" specifications `prompt_i` include:
+
+|                                     |                           |
+|-------------------------------------|---------------------------|
+| "text"                              | static text               |
+| ["text1", ...]                      | a list of strings         |
+| llm-prompt("name")                  | a repository prompt       |
+| `sub ($arg1..) {"Some $arg1 text"}` | templated text            |
+| `llm-function(...)`                 | an `LLM::Function` object |
+
+
+- Any "node_i" result can be provided in input as a named argument. 
+  `input` can have one positional argument and multiple named arguments.
+
+- `LLM::Graph` objects have the attribute `llm-evaluator` that is used as a default (or fallback)
+  LLM evaluator object.
 
 -----
 
@@ -70,7 +136,6 @@ Computations dependency graph:
 $gBestPoem.dot(engine => 'dot', node-shape => 'ellipse', node-width => 1.2 ):svg
 ```
 
-
 ![](./docs/Three-poets-graph.svg)
 
 
@@ -80,17 +145,12 @@ The result by the terminal node("judge"):
 say $gBestPoem.rules<judge>;
 ```
 ```
-# {eval-function => sub { }, input => [poet2 poet1 poet3], result => I think Poem1 is the best among these for its vivid imagery and flowing rhythm. Here it is:
+# {eval-function => sub { }, input => [poet2 poet3 poet1], result => I think Poem1 is the best among these. Here it is:
 # 
-# Golden rays on warm embrace,  
-# Whispers of the sun’s soft grace.  
-# Fields alive with blooms that gleam,  
-# Summer dances in a dream.  
-# 
-# Ocean’s hum and laughter’s song,  
-# Days that stretch forever long.  
-# Hearts alight with carefree fire,  
-# Summer sings our deep desire., test-function-input => [], wrapper => Routine::WrapHandle.new}
+# Golden sun warms the sky so bright,  
+# Whispers of breeze in soft daylight.  
+# Flowers bloom in colors fair,  
+# Summer’s magic fills the air., test-function-input => [], wrapper => Routine::WrapHandle.new}
 ```
 
 -----
