@@ -125,12 +125,12 @@ class LLM::Graph
         for %!rules.kv -> $k, $node {
             given $node {
                 when $_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D {
-                    %!rules{$k} = %( llm-function => llm-function($_) )
+                    %!rules{$k} = %( llm-function => llm-function($_), spec-type => Str )
                 }
 
                 # &llm-function returns functors by default since "LLM::Functions:ver<0.3.3>"
                 when LLM::Function:D {
-                    %!rules{$k} = %( llm-function => $_ )
+                    %!rules{$k} = %( llm-function => $_, spec-type => LLM::Function )
                 }
 
                 when Routine:D {
@@ -138,7 +138,7 @@ class LLM::Graph
                         my $res = callsame;
                         llm-synthesize($res, :$!llm-evaluator)
                     });
-                    %!rules{$k} = %( eval-function => $_, :$wrapper )
+                    %!rules{$k} = %( eval-function => $_, :$wrapper, spec-type => Routine )
                 }
 
                 when Callable:D {
@@ -146,7 +146,7 @@ class LLM::Graph
                 }
 
                 when Map:D {
-                    #%!rules{$k} = $_
+                    %!rules{$k} = merge-hash($_ , {spec-type => Map})
                 }
             }
         }

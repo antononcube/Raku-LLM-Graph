@@ -2,6 +2,7 @@ use v6.d;
 
 use Graph;
 use Graph::Formatish;
+use LLM::Functions;
 
 role LLM::Graph::Formatish does  Graph::Formatish {
     method dot(
@@ -17,20 +18,27 @@ role LLM::Graph::Formatish does  Graph::Formatish {
 
         my %args2 = %args.grep({ $_.key ∉ <weights node-shape> });
 
-        my $res = self.graph.dot(:weights, output-format => 'dot', node-shape => 'ellipse', |%args2);
+        my $res = self.graph.dot(:weights, output-format => 'dot', node-shape => 'box', |%args2);
 
-        # LLM-functions of any type
-        my @funcs = self.rules.grep({ ($_.value<llm-function>:exists) })».key;
+        # LLM-functions over strings
+        my @funcs = self.rules.grep({ ($_.value<spec-type> ~~ Str) })».key;
 
         for @funcs -> $p {
-            $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=egg];' ~ "\n")
+            $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=egg, style=dashed];' ~ "\n")
         }
 
-        # Wrapped eval-functions (most likely invoking LLMs in their wrappers)
-        my @proc = self.rules.grep({ ($_.value<eval-function>:exists) && ($_.value<wrapper>:!exists) })».key;
+        # LLM functors
+        @funcs = self.rules.grep({ $_.value<spec-type> ~~ LLM::Function })».key;
+
+        for @funcs -> $p {
+                $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=ellipse, style=dashed];' ~ "\n")
+        }
+
+        # Wrapped eval-functions (invoking LLMs in their wrappers) or LLM functors
+        my @proc = self.rules.grep({ $_.value<spec-type> ~~ Routine })».key;
 
         for @proc -> $p {
-            $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=box];' ~ "\n")
+                $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=house];' ~ "\n")
         }
 
         # Input nodes
