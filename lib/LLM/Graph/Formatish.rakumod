@@ -24,21 +24,22 @@ role LLM::Graph::Formatish does  Graph::Formatish {
         my @funcs = self.rules.grep({ ($_.value<spec-type> ~~ Str) })».key;
 
         for @funcs -> $p {
-            $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=egg, style=dashed];' ~ "\n")
+            $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=egg];' ~ "\n")
         }
 
         # LLM functors
         @funcs = self.rules.grep({ $_.value<spec-type> ~~ LLM::Function })».key;
 
         for @funcs -> $p {
-                $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=ellipse, style=dashed];' ~ "\n")
+                $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=ellipse];' ~ "\n")
         }
 
-        # Wrapped eval-functions (invoking LLMs in their wrappers) or LLM functors
-        my @proc = self.rules.grep({ $_.value<spec-type> ~~ Routine })».key;
+        # Wrapped eval-functions (invoking LLMs in their wrappers)
+        my @proc = self.rules.grep({ ($_.value<spec-type> ~~ Routine) && ($_.value<wrapper>:exists) })».key;
 
         for @proc -> $p {
-                $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=house];' ~ "\n")
+                $res .= subst('"' ~ $p ~ '";', '"' ~ $p ~ '" [shape=ellipse];' ~ "\n");
+                $res .= subst( / '}' $/, "\nsubgraph {$p}_Cluster \{ cluster=true; style=dashed; color={%args<node-color> // 'Grey'}\"$p\";\}\n}")
         }
 
         # Input nodes
