@@ -1,7 +1,7 @@
 use v6.d;
 use Test;
 
-# use lib <. lib>;
+use lib <. lib>;
 use LLM::Graph;
 use Graph;
 
@@ -11,20 +11,42 @@ my %rules =
         combine => { eval-function => sub (Str:D $fun1, Str:D $fun2) { "$fun1 : $fun2" } }
         ;
 
-## 1
-ok LLM::Graph.new(%rules);
+subtest {
+        ## 1
+        ok LLM::Graph.new(%rules);
 
-## 2
-my $g = LLM::Graph.new(%rules);
-isa-ok $g.create-graph, Graph:D;
+        ## 2
+        my $g = LLM::Graph.new(%rules);
+        isa-ok $g.create-graph, Graph:D;
 
-## 3
-is $g.eval.rules<combine><result>, 'out1 : out2';
+        ## 3
+        is $g.eval.rules<combine><result>, 'out1 : out2';
 
-## 4
-is
-        $g(fun1 => 'in1', fun2 => 'in2').rules<combine><result>,
-        'in1 : in2',
-        'iverriding inputs; graph object is callable';
+        ## 4
+        is
+                $g(fun1 => 'in1', fun2 => 'in2').rules<combine><result>,
+                'in1 : in2',
+                'iverriding inputs; graph object is callable';
+}, 'graph creation and evaluations';
+
+subtest {
+
+        my $g = LLM::Graph.new(%rules);
+
+        ok $g();
+
+        is $g.rules.nodemap(*<result>)<fun1 fun2 combine>, ['out1', 'out2', 'out1 : out2'];
+
+        ok $g.drop-result(<fun1 fun2>);
+
+        is $g.rules.nodemap({ $_<result> // 'NONE' })<fun1 fun2 combine>, ['NONE', 'NONE', 'out1 : out2'];
+
+        ok $g();
+        is $g.drop-result('fun2').rules.nodemap({ $_<result> // 'NONE' })<fun1 fun2 combine>, ['out1', 'NONE', 'out1 : out2'];
+
+        ok $g();
+        is $g.drop-result().rules.nodemap({ $_<result> // 'NONE' })<fun1 fun2 combine>, ['NONE', 'NONE', 'NONE'];
+
+}, 'drop results';
 
 done-testing;
