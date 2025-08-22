@@ -44,7 +44,7 @@ zef install https://github.com/antononcube/Raku-LLM-Graph.git
 Creation of an `LLM::Graph` object in which "node_i" evaluates `fun_i` with results from parent nodes:
 
 ```
-LLM::Graph.new({name-1 => fun_1, ...})
+LLM::Graph.new({name_1 => fun_1, ...})
 ```
 
 `LLM::Graph` objects are callables. Getting the result of a graph on `input`:
@@ -55,7 +55,8 @@ LLM::Graph.new(...)(input)
 
 ### Details and options
 
-- An `LLM::Graph` enables efficient scheduling and integration of multiple LLM generation steps, optimizing evaluation by managing the concurrency of LLM requests.
+- An `LLM::Graph` enables efficient scheduling and integration of multiple LLM generation steps
+  optimizing evaluation by managing the concurrency of LLM requests.
 
 - Using `LLM::Graph` requires (LLM) service authentication and internet connectivity.
   - Authentication and internet are required if all graph nodes are non-LLM computation specs.
@@ -89,8 +90,8 @@ LLM::Graph.new(...)(input)
 |                                     |                           |
 |-------------------------------------|---------------------------|
 | "text"                              | static text               |
-| ["text1", ...]                      | a list of strings         |
-| llm-prompt("name")                  | a repository prompt       |
+| `["text1", ...]`                    | a list of strings         |
+| `llm-prompt("name")`                | a repository prompt       |
 | `sub ($arg1..) {"Some $arg1 text"}` | templated text            |
 | `llm-function(...)`                 | an `LLM::Function` object |
 
@@ -99,7 +100,7 @@ LLM::Graph.new(...)(input)
   `input` can have one positional argument and multiple named arguments.
 
 - `LLM::Graph` objects have the attribute `llm-evaluator` that is used as a default (or fallback)
-  LLM evaluator object.
+  LLM evaluator object. (See [AAp1].)
 
 -----
 
@@ -135,14 +136,16 @@ my $gBestPoem = LLM::Graph.new(%rules);
 # LLM::Graph(size => 4, nodes => judge, poet1, poet2, poet3)
 ```
 
-Full calculation:
+Calculation with special parameters (topic and style) for the 3rd poet:
 
 ```raku
-$gBestPoem.eval(topic => 'hockey', style => 'limerick');
+$gBestPoem(topic => 'hockey', style => 'limerick');
 ```
 ```
 # LLM::Graph(size => 4, nodes => judge, poet1, poet2, poet3)
 ```
+
+**Remark** Instances of `LLM::Graph` are callables. Instead of `$gBestPoem(...)`, `$gBestPoem.eval(...)` can be used.
 
 Computations dependency graph:
 
@@ -159,12 +162,17 @@ The result by the terminal node("judge"):
 say $gBestPoem.rules<judge>;
 ```
 ```
-# {eval-function => sub { }, input => [poet2 poet3 poet1], result => I think Poem1 is the best among these. Here it is:
+# {eval-function => sub { }, input => [poet3 poet1 poet2], result => I think Poem1 is the best among these. Here's the composition:
 # 
-# Golden sun warms the sky so bright,  
-# Whispers of breeze in soft daylight.  
-# Flowers bloom in colors fair,  
-# Summer’s magic fills the air., test-function-input => [], wrapper => Routine::WrapHandle.new}
+# Golden rays that warm the day,  
+# Whispering breezes gently sway.  
+# Fields alive with blooms so bright,  
+# Endless days of pure delight.  
+# 
+# Laughter dances on the air,  
+# Sun-kissed skin without a care.  
+# Summer’s song, so sweet and clear,  
+# A fleeting gift we hold so dear., test-function-input => [], wrapper => Routine::WrapHandle.new}
 ```
 
 -----
@@ -174,7 +182,7 @@ say $gBestPoem.rules<judge>;
 ### LLM functors introduction
 
 - Since the very beginning, the functions produced by all functions were actually blocks (`Block:D`).
-  It was in my TODO list instead of blocks to produce functors (function objects).
+  It was in my TODO list instead of blocks to produce functors (function objects). 
   For "LLM::Graph" that is/was necessary in order to make the node-specs processing more adequate.
   - So, `llm-function` produces functors (`LLM::Function` objects) by default now.
   - The option "type" can be used to get blocks.
@@ -182,7 +190,7 @@ say $gBestPoem.rules<judge>;
 ### No need for topological sorting
 
 - I thought that I should use the graph algorithms for topological sorting in order to navigate node dependencies
-  during evaluation.
+  during evaluation. 
 - Turned out, that is not necessary -- simple recursion is sufficient.
   - From the Notes specs, a directed graph (`Graph` object) is made.
   - `Graph`'s method `reverse` is used to get the directed computational dependency graph.
@@ -203,7 +211,7 @@ say $gBestPoem.rules<judge>;
 
 - Of course it is nice to have the graph visualized.
 - Instead of the generic graph visualization provided by the package "Graph" (method `dot`)
-  A more informative graph plot is produced in which the different types of notes have different shapes.
+  a more informative graph plot is produced in which the different types of notes have different shapes.
   - The graph vertex shapes help distinguishing LLM-nodes from just-Raku-nodes.
   - Also, test function dependencies are designated with dashed arrows.
 
@@ -226,8 +234,10 @@ say $gBestPoem.rules<judge>;
   - [ ] TODO Simple evaluations
 - [ ] TODO Documentation
   - [X] DONE Useful README
-  - [ ] TODO Three poets notebook.
-  - [ ] TODO Comprehensive text summary notebook.
+  - [ ] TODO [Best poet notebook](./docs/Best-poet.ipynb).
+  - [ ] TODO [Comprehensive text summary notebook](./docs/Summarize-large-text.ipynb).
+  - [ ] TODO Visual dictionary
+  - [ ] TODO Demo video
 
 -----
 
@@ -243,7 +253,7 @@ say $gBestPoem.rules<judge>;
 ### Functions, packages
 
 [AAp1] Anton Antonov, 
-[LLM::Functions Raku package](https://github.com/antononcube/Raku-LLM-Functions),
+[LLM::Functions Raku package](https://github.com/antononcube/Raku-LLM-Graph),
 (2023-2025),
 [GitHub/antononcube](https://github.com/antononcube).
 
@@ -271,6 +281,6 @@ say $gBestPoem.rules<judge>;
 ### Videos
 
 [WRIv1] Wolfram Research, Inc.,
-["Live CEOing Ep 886: Design Review of LLMGraph](https://www.youtube.com/watch?v=ewU83vHwN8Y),
+["Live CEOing Ep 886: Design Review of LLMGraph"](https://www.youtube.com/watch?v=ewU83vHwN8Y),
 (2025),
 [YouTube/WolframResearch](https://www.youtube.com/@WolframResearch).

@@ -44,7 +44,7 @@ zef install https://github.com/antononcube/Raku-LLM-Graph.git
 Creation of an `LLM::Graph` object in which "node_i" evaluates `fun_i` with results from parent nodes:
 
 ```
-LLM::Graph.new({name-1 => fun_1, ...})
+LLM::Graph.new({name_1 => fun_1, ...})
 ```
 
 `LLM::Graph` objects are callables. Getting the result of a graph on `input`:
@@ -55,7 +55,8 @@ LLM::Graph.new(...)(input)
 
 ### Details and options
 
-- An `LLM::Graph` enables efficient scheduling and integration of multiple LLM generation steps, optimizing evaluation by managing the concurrency of LLM requests.
+- An `LLM::Graph` enables efficient scheduling and integration of multiple LLM generation steps
+  optimizing evaluation by managing the concurrency of LLM requests.
 
 - Using `LLM::Graph` requires (LLM) service authentication and internet connectivity.
   - Authentication and internet are required if all graph nodes are non-LLM computation specs.
@@ -89,8 +90,8 @@ LLM::Graph.new(...)(input)
 |                                     |                           |
 |-------------------------------------|---------------------------|
 | "text"                              | static text               |
-| ["text1", ...]                      | a list of strings         |
-| llm-prompt("name")                  | a repository prompt       |
+| `["text1", ...]`                    | a list of strings         |
+| `llm-prompt("name")`                | a repository prompt       |
 | `sub ($arg1..) {"Some $arg1 text"}` | templated text            |
 | `llm-function(...)`                 | an `LLM::Function` object |
 
@@ -99,7 +100,7 @@ LLM::Graph.new(...)(input)
   `input` can have one positional argument and multiple named arguments.
 
 - `LLM::Graph` objects have the attribute `llm-evaluator` that is used as a default (or fallback)
-  LLM evaluator object.
+  LLM evaluator object. (See [AAp1].)
 
 -----
 
@@ -132,11 +133,13 @@ my %rules =
 my $gBestPoem = LLM::Graph.new(%rules);
 ```
 
-Full calculation:
+Calculation with special parameters (topic and style) for the 3rd poet:
 
 ```raku
-$gBestPoem.eval(topic => 'hockey', style => 'limerick');
+$gBestPoem(topic => 'hockey', style => 'limerick');
 ```
+
+**Remark** Instances of `LLM::Graph` are callables. Instead of `$gBestPoem(...)`, `$gBestPoem.eval(...)` can be used.
 
 Computations dependency graph:
 
@@ -189,7 +192,7 @@ say $gBestPoem.rules<judge>;
 
 - Of course it is nice to have the graph visualized.
 - Instead of the generic graph visualization provided by the package "Graph" (method `dot`)
-  A more informative graph plot is produced in which the different types of notes have different shapes.
+  a more informative graph plot is produced in which the different types of notes have different shapes.
   - The graph vertex shapes help distinguishing LLM-nodes from just-Raku-nodes.
   - Also, test function dependencies are designated with dashed arrows.
 
@@ -212,8 +215,10 @@ say $gBestPoem.rules<judge>;
   - [ ] TODO Simple evaluations
 - [ ] TODO Documentation
   - [X] DONE Useful README
-  - [ ] TODO Three poets notebook.
-  - [ ] TODO Comprehensive text summary notebook.
+  - [ ] TODO [Best poet notebook](./docs/Best-poet.ipynb).
+  - [ ] TODO [Comprehensive text summary notebook](./docs/Summarize-large-text.ipynb).
+  - [ ] TODO Visual dictionary
+  - [ ] TODO Demo video
 
 -----
 
