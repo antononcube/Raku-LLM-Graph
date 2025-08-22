@@ -211,11 +211,11 @@ class LLM::Graph
         my @posArgs;
         my %namedArgs;
         for @args -> %rec {
-            if !%rec<named> { @posArgs[%rec<position>] = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} }
-            if %rec<named> { %namedArgs{%rec<name>} = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} }
+            if !%rec<named> { @posArgs[%rec<position>] = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} // %rec<default> }
+            if %rec<named> { %namedArgs{%rec<name>} = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} // %rec<default> }
         }
 
-        @posArgs .= map({ $_.defined ?? $_ !! $pos-arg });
+        @posArgs .= map({ $_.defined || $_.isa(Whatever) ?? $_ !! $pos-arg });
 
         # Passing positional arguments with non-default values is complicated.
         my $result = &func(|@posArgs, |%namedArgs);
