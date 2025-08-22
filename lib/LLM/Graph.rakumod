@@ -73,7 +73,7 @@ class LLM::Graph
     }
 
     multi method drop-result(@nodes) {
-        %!rules = %!rules.grep({ $_.key ∈ @nodes }).map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
+        %!rules.grep({ $_.key ∈ @nodes }).map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
         self;
     }
 
