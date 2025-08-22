@@ -16,7 +16,7 @@ ok LLM::Graph.new(%rules);
 
 ## 2
 my $g = LLM::Graph.new(%rules);
-isa-ok $g.create-graph, Graph:D;
+isa-ok $g.create-graph.graph, Graph:D;
 
 ## 3
 my $poet1 = q:to/END/;

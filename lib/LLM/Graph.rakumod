@@ -63,18 +63,20 @@ class LLM::Graph
     #======================================================
     # Management methods
     #======================================================
+
+    # A more universal name would be "result-drop". (But I do not like it.)
     multi method drop-result() {
         %!rules.map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
-        self;
+        return self;
     }
 
     multi method drop-result($node) {
-        self.drop-result([$node,]);
+        return self.drop-result([$node,]);
     }
 
     multi method drop-result(@nodes) {
         %!rules.grep({ $_.key ∈ @nodes }).map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
-        self;
+        return self;
     }
 
     #======================================================
@@ -151,7 +153,7 @@ class LLM::Graph
                 }
             }
         }
-        return %!rules;
+        return self;
     }
 
     #======================================================
@@ -176,7 +178,7 @@ class LLM::Graph
         my %allArgs = merge-hash(%args , %testArgs, :positional-append);
 
         # Make edges
-        my @edges = (%allArgs.keys X %allArgs.keys).map( -> ($k1, $k2) {
+        my @edges = (%allArgs.keys X %allArgs.keys).grep({ $_.head ne $_.tail }).map( -> ($k1, $k2) {
                 my $v2 = %allArgs{$k2};
                 if $k1 ∈ $v2 || $k1 ∈ $v2».subst(/ ^ <[$%@]> /) {
                     my $weight = 2 * +((%testArgs{$k2}:exists) && ($k1 ∈ %testArgs{$k2} || $k1 ∈ %testArgs{$k2}».subst(/ ^ <[$%@]> /)));
@@ -192,7 +194,7 @@ class LLM::Graph
         die 'Cyclic prompt dependencies are not supported.'
         unless $!graph.is-acyclic;
 
-        return $!graph;
+        return self;
     }
 
     #======================================================

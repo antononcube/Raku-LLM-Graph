@@ -17,7 +17,7 @@ subtest {
 
         ## 2
         my $g = LLM::Graph.new(%rules);
-        isa-ok $g.create-graph, Graph:D;
+        isa-ok $g.create-graph.graph, Graph:D;
 
         ## 3
         is $g.eval.rules<combine><result>, 'out1 : out2';
