@@ -146,7 +146,8 @@ class LLM::Graph
                 }
 
                 when Map:D {
-                    %!rules{$k} = merge-hash($_ , {spec-type => Map})
+                    my $spec-type = $_<eval-function>:exists ?? Callable !! LLM::Function;
+                    %!rules{$k} = merge-hash($_ , {:$spec-type})
                 }
             }
         }
