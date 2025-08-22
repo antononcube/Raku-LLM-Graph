@@ -64,7 +64,7 @@ class LLM::Graph
     # Management methods
     #======================================================
     multi method drop-result() {
-        %!rules .= map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
+        %!rules.map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
         self;
     }
 
