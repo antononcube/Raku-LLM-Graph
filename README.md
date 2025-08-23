@@ -149,8 +149,8 @@ $gBestPoem(topic => 'hockey', style => 'limerick');
 
 Computations dependency graph:
 
-```raku, eval=FALSE
-$gBestPoem.dot(engine => 'dot', node-shape => 'ellipse', node-width => 1.2 ):svg
+```raku, eval=TRUE, results=asis
+$gBestPoem.dot(engine => 'dot', node-width => 1.2 ):svg
 ```
 
 ![](https://raw.githubusercontent.com/antononcube/Raku-LLM-Graph/refs/heads/main/docs/Three-poets-graph.svg)
@@ -159,20 +159,20 @@ $gBestPoem.dot(engine => 'dot', node-shape => 'ellipse', node-width => 1.2 ):svg
 The result by the terminal node("judge"):
 
 ```raku
-say $gBestPoem.rules<judge>;
+say $gBestPoem.nodes<judge>;
 ```
 ```
-# {eval-function => sub { }, input => [poet3 poet1 poet2], result => I think Poem1 is the best among these. Here's the composition:
+# {eval-function => sub { }, input => [poet3 poet1 poet2], result => I think Poem1 is the best among these for its vivid imagery and flowing rhythm. Here it is copied:
 # 
-# Golden rays that warm the day,  
-# Whispering breezes gently sway.  
-# Fields alive with blooms so bright,  
-# Endless days of pure delight.  
+# Golden rays that warm the skin,  
+# Laughter carried on the wind,  
+# Days that stretch with endless light,  
+# Summer’s dance from dawn to night.  
 # 
-# Laughter dances on the air,  
-# Sun-kissed skin without a care.  
-# Summer’s song, so sweet and clear,  
-# A fleeting gift we hold so dear., test-function-input => [], wrapper => Routine::WrapHandle.new}
+# Fields adorned in vibrant hues,  
+# Morning dew and evening blues,  
+# Hearts awake in sun’s embrace,  
+# Time moves slow in summer’s grace., spec-type => (Routine), test-function-input => [], wrapper => Routine::WrapHandle.new}
 ```
 
 -----
@@ -234,8 +234,8 @@ say $gBestPoem.rules<judge>;
   - [ ] TODO Simple evaluations
 - [ ] TODO Documentation
   - [X] DONE Useful README
-  - [ ] TODO [Best poet notebook](./docs/Best-poet.ipynb).
-  - [ ] TODO [Comprehensive text summary notebook](./docs/Summarize-large-text.ipynb).
+  - [X] DONE [Best poet notebook](./docs/Best-poet.ipynb).
+  - [X] DONE [Comprehensive text summary notebook](./docs/Summarize-large-text.ipynb).
   - [ ] TODO Visual dictionary
   - [ ] TODO Demo video
 
@@ -253,17 +253,17 @@ say $gBestPoem.rules<judge>;
 ### Functions, packages
 
 [AAp1] Anton Antonov, 
-[LLM::Functions Raku package](https://github.com/antononcube/Raku-LLM-Graph),
+[LLM::Functions, Raku package](https://github.com/antononcube/Raku-LLM-Functions),
 (2023-2025),
 [GitHub/antononcube](https://github.com/antononcube).
 
 [AAp2] Anton Antonov, 
-[LLM::Prompts Raku package](https://github.com/antononcube/Raku-LLM-Prompts),
+[LLM::Prompts, Raku package](https://github.com/antononcube/Raku-LLM-Prompts),
 (2023-2025),
 [GitHub/antononcube](https://github.com/antononcube).
 
 [AAp3] Anton Antonov, 
-[Graph Raku package](https://github.com/antononcube/Raku-LLM-Graph),
+[Graph, Raku package](https://github.com/antononcube/Raku-LLM-Graph),
 (2024-2025),
 [GitHub/antononcube](https://github.com/antononcube).
 
