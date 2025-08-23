@@ -175,6 +175,17 @@ say $gBestPoem.nodes<judge>;
 # Nature’s smile on every face., spec-type => (Routine), test-function-input => [], wrapper => Routine::WrapHandle.new}
 ```
 
+### Further examples
+
+The following notebooks provide more elaborate examples:
+
+- ["Best-poet.ipynb"](https://github.com/antononcube/Raku-LLM-Graph/blob/main/docs/Best-poet.ipynb)
+- ["Summarize-large-text.ipynb"](https://github.com/antononcube/Raku-LLM-Graph/blob/main/docs/Summarize-large-text.ipynb)
+
+The following notebook gives visual dictionaries for the interpretation of LLM-graph plots:
+
+- ["Graph-plots-interpretation-guide.ipynb"](https://github.com/antononcube/Raku-LLM-Graph/blob/main/docs/Graph-plots-interpretation-guide.ipynb)
+
 -----
 
 ## Implementation notes
