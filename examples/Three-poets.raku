@@ -29,10 +29,10 @@ my %rules =
 my $gBestPoem = LLM::Graph.new(%rules);
 
 # Show edges dataset
-.say for $gBestPoem.create-graph('', {topic => 'hockey', style => 'limerick', with-russian => 'yes', poet1 => 'meh', poet2 => 'blah blah'}).edges(:dataset);
+.say for $gBestPoem.create-graph('', {topic => 'hockey', style => 'limerick', with-russian => 'yes', poet1 => 'meh', poet2 => 'blah blah'}).graph.edges(:dataset);
 
 # Queries
-say '$gBestPoem.rules-valid' => $gBestPoem.rules-valid;
+say '$gBestPoem.has-valid-node-specs' => $gBestPoem.has-valid-node-specs;
 say '$gBestPoem.normalize-nodes:';
 .say for |$gBestPoem.normalize-nodes;
 
@@ -43,14 +43,14 @@ $gBestPoem.eval(topic => 'hockey', style => 'limerick', with-russian => 'no', po
 
 # Show nodes after the evaluation
 say 'poet3:';
-.say for |$gBestPoem.rules<poet3>;
+.say for |$gBestPoem.nodes<poet3>;
 
 say '-' x 100;
 
 say 'poet4:';
-.say for |$gBestPoem.rules<poet4>;
+.say for |$gBestPoem.nodes<poet4>;
 
 say '-' x 100;
 
 say 'judge:';
-.say for |$gBestPoem.rules<judge>;
+.say for |$gBestPoem.nodes<judge>;

@@ -15,10 +15,10 @@ my %rules =
 my $g = LLM::Graph.new(%rules);
 
 # Queries over the LLM-graph object
-say '$g.rules-valid' => $g.rules-valid;
+say '$g.has-valid-node-specs' => $g.has-valid-node-specs;
 say '$g.normalize-nodes' => $g.normalize-nodes;
 
-say '$g.rules' => $g.rules;
+say '$g.nodes' => $g.nodes;
 
 $g.create-graph;
 
@@ -63,5 +63,5 @@ say $g.eval(:$poet1, :$poet2);
 #say $g.eval;
 
 # Show the result of the terminal node
-say $g.rules<judge><result>;
+say $g.nodes<judge><result>;
 

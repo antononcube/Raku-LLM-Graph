@@ -9,7 +9,7 @@ use LLM::Graph::Formatish;
 class LLM::Graph
         does Callable
         does LLM::Graph::Formatish {
-    has %.rules is required;
+    has %.nodes is required;
     has $.graph = Whatever;
     has $.llm-evaluator is rw = Whatever;
 
@@ -19,7 +19,7 @@ class LLM::Graph
     #======================================================
     # Creators
     #======================================================
-    submethod BUILD(:%!rules = %(),
+    submethod BUILD(:%!nodes = %(),
                     :$!graph = Whatever,
                     :$!llm-evaluator = Whatever) {
         if $!llm-evaluator.isa(Whatever) {
@@ -27,16 +27,16 @@ class LLM::Graph
         }
     }
 
-    multi method new(Hash $rules) {
-        self.bless(:$rules, graph => Whatever);
+    multi method new(Hash $nodes) {
+        self.bless(:$nodes, graph => Whatever);
     }
 
-    multi method new(%rules, :$llm-evaluator = Whatever) {
-        self.bless(:%rules, graph => Whatever, :$llm-evaluator);
+    multi method new(%nodes, :$llm-evaluator = Whatever) {
+        self.bless(:%nodes, graph => Whatever, :$llm-evaluator);
     }
 
-    multi method new(:%rules!, :$llm-evaluator = Whatever) {
-        self.bless(:%rules, graph => Whatever, :$llm-evaluator);
+    multi method new(:%nodes!, :$llm-evaluator = Whatever) {
+        self.bless(:%nodes, graph => Whatever, :$llm-evaluator);
     }
 
     #======================================================
@@ -44,7 +44,7 @@ class LLM::Graph
     #======================================================
     method clone() {
         LLM::Graph.new(
-                rules => %!rules.clone,
+                nodes => %!nodes.clone,
                 graph => $!graph.defined ?? $!graph.clone !! Whatever,
                 llm-evaluator => $!llm-evaluator.defined ?? $!llm-evaluator.clone !! Whatever)
     }
@@ -53,7 +53,7 @@ class LLM::Graph
     # Representation
     #======================================================
     multi method gist(::?CLASS:D:-->Str) {
-        return "LLM::Graph(size => {self.rules.elems}, nodes => {self.rules.keys.sort.join(', ')})";
+        return "LLM::Graph(size => {self.nodes.elems}, nodes => {self.nodes.keys.sort.join(', ')})";
     }
 
     method Str(){
@@ -66,7 +66,7 @@ class LLM::Graph
 
     # A more universal name would be "result-drop". (But I do not like it.)
     multi method drop-result() {
-        %!rules.map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
+        %!nodes.map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
         return self;
     }
 
@@ -75,7 +75,7 @@ class LLM::Graph
     }
 
     multi method drop-result(@nodes) {
-        %!rules.grep({ $_.key ∈ @nodes }).map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
+        %!nodes.grep({ $_.key ∈ @nodes }).map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
         return self;
     }
 
@@ -83,9 +83,9 @@ class LLM::Graph
     # Validators
     #======================================================
 
-    method rule-errors() {
+    method node-spec-errors() {
         my @errors;
-        for %!rules.kv -> $name, $val {
+        for %!nodes.kv -> $name, $val {
             if $val ~~ Str:D || $val ~~ (Array:D | List:D | Seq:D) && $val.all ~~ Str:D {
                 next;
             }
@@ -115,8 +115,8 @@ class LLM::Graph
         return @errors;
     }
 
-    method rules-valid(-->Bool) {
-        self.rule-errors().elems == 0;
+    method has-valid-node-specs(-->Bool) {
+        self.node-spec-errors().elems == 0;
     }
 
     #======================================================
@@ -124,15 +124,15 @@ class LLM::Graph
     #======================================================
 
     method normalize-nodes() {
-        for %!rules.kv -> $k, $node {
+        for %!nodes.kv -> $k, $node {
             given $node {
                 when $_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D {
-                    %!rules{$k} = %( llm-function => llm-function($_), spec-type => Str )
+                    %!nodes{$k} = %( llm-function => llm-function($_), spec-type => Str )
                 }
 
                 # &llm-function returns functors by default since "LLM::Functions:ver<0.3.3>"
                 when LLM::Function:D {
-                    %!rules{$k} = %( llm-function => $_, spec-type => LLM::Function )
+                    %!nodes{$k} = %( llm-function => $_, spec-type => LLM::Function )
                 }
 
                 when Routine:D {
@@ -140,7 +140,7 @@ class LLM::Graph
                         my $res = callsame;
                         llm-synthesize($res, :$!llm-evaluator)
                     });
-                    %!rules{$k} = %( eval-function => $_, :$wrapper, spec-type => Routine )
+                    %!nodes{$k} = %( eval-function => $_, :$wrapper, spec-type => Routine )
                 }
 
                 when Callable:D {
@@ -149,7 +149,7 @@ class LLM::Graph
 
                 when Map:D {
                     my $spec-type = $_<eval-function>:exists ?? Callable !! LLM::Function;
-                    %!rules{$k} = merge-hash($_ , {:$spec-type})
+                    %!nodes{$k} = merge-hash($_ , {:$spec-type})
                 }
             }
         }
@@ -166,11 +166,11 @@ class LLM::Graph
         self.normalize-nodes;
 
         # For each node get the input arguments
-        my %funcArgs = %!rules.map({ $_.key => $_.value<eval-function> // $_.value<llm-function> // $_.value<listable-llm-function> });
+        my %funcArgs = %!nodes.map({ $_.key => $_.value<eval-function> // $_.value<llm-function> // $_.value<listable-llm-function> });
         %funcArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
 
         # For each node get the test function input arguments (if any)
-        my %testArgs = %!rules.grep({ $_.value<test-function> }).map({ $_.key => $_.value<test-function> });
+        my %testArgs = %!nodes.grep({ $_.value<test-function> }).map({ $_.key => $_.value<test-function> });
         %testArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
 
         # Add named args
@@ -229,21 +229,21 @@ class LLM::Graph
 
         return %named-args{$node} with %named-args{$node};
 
-        return True without %!rules{$node}<test-function>;
+        return True without %!nodes{$node}<test-function>;
 
-        return %!rules{$node}<test-function-result> with %!rules{$node}<test-function-result>;
+        return %!nodes{$node}<test-function-result> with %!nodes{$node}<test-function-result>;
 
         my %inputs;
-        if %!rules{$node}<test-function-input> {
-            %inputs = %!rules{$node}<test-function-input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
+        if %!nodes{$node}<test-function-input> {
+            %inputs = %!nodes{$node}<test-function-input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
         }
 
         # Node function info
-        my &func = %!rules{$node}<test-function>;
+        my &func = %!nodes{$node}<test-function>;
         my $result = self.eval-func(&func, %inputs, :$pos-arg);
 
         # Register result -- is this needed?
-        %!rules{$node}<test-function-result> = $result;
+        %!nodes{$node}<test-function-result> = $result;
 
         return $result;
     }
@@ -254,25 +254,25 @@ class LLM::Graph
 
         return %named-args{$node} with %named-args{$node};
 
-        return %!rules{$node}<result> with %!rules{$node}<result>;
+        return %!nodes{$node}<result> with %!nodes{$node}<result>;
 
         if !self.eval-test-node($node, :$pos-arg, |%named-args) {
             # Register non-result
-            %!rules{$node}<result> = Nil;
+            %!nodes{$node}<result> = Nil;
             return Nil;
         }
 
         my %inputs;
-        if %!rules{$node}<input> {
-            %inputs = %!rules{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
+        if %!nodes{$node}<input> {
+            %inputs = %!nodes{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
         }
 
         # Node function info
-        my &func = %!rules{$node}<eval-function> // %!rules{$node}<llm-function> // %!rules{$node}<listable-llm-function>;
+        my &func = %!nodes{$node}<eval-function> // %!nodes{$node}<llm-function> // %!nodes{$node}<listable-llm-function>;
         my $result = self.eval-func(&func, %inputs, :$pos-arg);
 
         # Register result
-        %!rules{$node}<result> = $result;
+        %!nodes{$node}<result> = $result;
 
         return $result;
     }
@@ -289,11 +289,11 @@ class LLM::Graph
                 $!graph.vertex-out-degree(:p).grep({ $_.value == 0 })».key
             }
 
-            when $_ ~~ Str:D && (%!rules{$_}:exists) {
+            when $_ ~~ Str:D && (%!nodes{$_}:exists) {
                 [$, ]
             }
 
-            when $_ ~~ (List:D | Array:D | Seq:D) && $_.all ~~ Str:D && ([&&] $_.map(-> $k { %!rules{$k}:exists })) {
+            when $_ ~~ (List:D | Array:D | Seq:D) && $_.all ~~ Str:D && ([&&] $_.map(-> $k { %!nodes{$k}:exists })) {
                 $_
             }
 
@@ -307,15 +307,15 @@ class LLM::Graph
         my $gr = $!graph.reverse;
 
         # Expand the hashmap of each node with inputs
-        for %!rules.kv -> $k, %v {
-            %!rules{$k} = [|%v , input => [], test-function-input => [], result => Nil].Hash;
+        for %!nodes.kv -> $k, %v {
+            %!nodes{$k} = [|%v , input => [], test-function-input => [], result => Nil].Hash;
             with $gr.adjacency-list{$k} {
                 if %v<test-function>:exists {
                     # See how the dependency graph is made -- test-function input edges have weight 2 or 3
-                    %!rules{$k}<input> = $gr.adjacency-list{$k}.grep({ $_.value == 1 }).Hash.keys.Array;
-                    %!rules{$k}<test-function-input> = $gr.adjacency-list{$k}.grep({ $_.value >= 2 }).Hash.keys.Array;
+                    %!nodes{$k}<input> = $gr.adjacency-list{$k}.grep({ $_.value == 1 }).Hash.keys.Array;
+                    %!nodes{$k}<test-function-input> = $gr.adjacency-list{$k}.grep({ $_.value >= 2 }).Hash.keys.Array;
                 } else {
-                    %!rules{$k}<input> = $gr.adjacency-list{$k}.keys.Array;
+                    %!nodes{$k}<input> = $gr.adjacency-list{$k}.keys.Array;
                 }
             }
         }
@@ -327,7 +327,7 @@ class LLM::Graph
         }
 
         # Unwrap wrapped subs
-        # %!rules .= map({ if $_.value<wrapper> { $_.value<eval-function>.unwrap($_.value<wrapper>) }; $_ });
+        # %!nodes .= map({ if $_.value<wrapper> { $_.value<eval-function>.unwrap($_.value<wrapper>) }; $_ });
 
         return self;
     }

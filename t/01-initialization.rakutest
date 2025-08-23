@@ -14,8 +14,8 @@ subtest {
     };
 
     my $g1 = LLM::Graph.new($valid-rules);
-    ok $g1.rules-valid(), 'valid rules should validate';
-    is $g1.rule-errors().elems, 0, 'no errors for valid rules';
+    ok $g1.has-valid-node-specs(), 'valid rules should validate';
+    is $g1.node-spec-errors().elems, 0, 'no errors for valid rules';
     is $g1.graph.isa(Whatever), True, 'default graph is empty';
 
 }, 'valid rules';
@@ -26,8 +26,8 @@ subtest {
         n2 => [1, 2, 3],
     };
     my $g2 = LLM::Graph.new($invalid-types);
-    is $g2.rules-valid(), False, 'invalid types should fail validation';
-    like $g2.rule-errors().join("\n"), / 'Rule \'n1\' has invalid type: Int' | n2 /, 'errors mention invalid types';
+    is $g2.has-valid-node-specs(), False, 'invalid types should fail validation';
+    like $g2.node-spec-errors().join("\n"), / 'Rule \'n1\' has invalid type: Int' | n2 /, 'errors mention invalid types';
 
 }, 'invalid types';
 
@@ -36,8 +36,8 @@ subtest {
         m1 => { 'bad-key' => 'x', 'input' => 'y' },
     };
     my $g3 = LLM::Graph.new($invalid-keys);
-    ok not $g3.rules-valid(), 'map with invalid keys should fail';
-    like $g3.rule-errors().join("\n"), / 'invalid keys: bad-key' /, 'error lists the invalid key';
+    ok not $g3.has-valid-node-specs(), 'map with invalid keys should fail';
+    like $g3.node-spec-errors().join("\n"), / 'invalid keys: bad-key' /, 'error lists the invalid key';
 
 }, 'invalid keys';
 
@@ -49,15 +49,15 @@ subtest {
         bad2 => 0,
     };
     my $g4 = LLM::Graph.new($mixed);
-    ok not $g4.rules-valid(), 'mixed valid/invalid should fail';
-    is $g4.rule-errors().elems, 3, 'two rules should be reported as errors';
+    ok not $g4.has-valid-node-specs(), 'mixed valid/invalid should fail';
+    is $g4.node-spec-errors().elems, 3, 'two rules should be reported as errors';
 }, 'mixed';
 
 subtest {
     # Named-parameter constructor
-    my %rules = a => 's';
-    my $g5 = LLM::Graph.new(:%rules);
-    ok $g5.rules-valid(), 'named-parameter constructor with valid rules works';
+    my %nodes = a => 's';
+    my $g5 = LLM::Graph.new(:%nodes);
+    ok $g5.has-valid-node-specs(), 'named-parameter constructor with valid rules works';
     is $g5.graph.isa(Whatever), True, 'named-parameter constructor sets default graph';
 }, 'named parameter';
 
@@ -67,9 +67,9 @@ subtest {
     };
 
     my $g1 = LLM::Graph.new($rules);
-    is $g1.rules-valid(), False, 'should not validate';
-    is $g1.rule-errors().elems, 1, 'an error should registered';
-    is (so $g1.rule-errors().head ~~ / test . function /), True, 'expected error message';
+    is $g1.has-valid-node-specs(), False, 'should not validate';
+    is $g1.node-spec-errors().elems, 1, 'an error should registered';
+    is (so $g1.node-spec-errors().head ~~ / test . function /), True, 'expected error message';
 
 }, 'invalid test-function';
 

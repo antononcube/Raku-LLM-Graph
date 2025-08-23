@@ -37,7 +37,7 @@ Blanketing the earth in white,
 Winter’s breath is still.
 END
 
-say $g.eval(:$poet1, :$poet2).rules<judge>;
+say $g.eval(:$poet1, :$poet2).nodes<judge>;
 #ok $g.eval(:$poet1, :$poet2);
 
 done-testing;
