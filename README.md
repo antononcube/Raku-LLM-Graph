@@ -149,7 +149,7 @@ $gBestPoem(topic => 'hockey', style => 'limerick');
 
 Computations dependency graph:
 
-```raku, eval=TRUE, results=asis
+```raku, eval=FALSE, results=asis
 $gBestPoem.dot(engine => 'dot', node-width => 1.2 ):svg
 ```
 
@@ -162,17 +162,17 @@ The result by the terminal node("judge"):
 say $gBestPoem.nodes<judge>;
 ```
 ```
-# {eval-function => sub { }, input => [poet3 poet1 poet2], result => I think Poem1 is the best among these for its vivid imagery and flowing rhythm. Here it is copied:
+# {eval-function => sub { }, input => [poet1 poet3 poet2], result => I think Poem1 is the best composition among these. Here's the poem:
 # 
-# Golden rays that warm the skin,  
-# Laughter carried on the wind,  
-# Days that stretch with endless light,  
-# Summer’s dance from dawn to night.  
+# Golden sun above so bright,  
+# Warmth that fills the day with light,  
+# Laughter dancing on the breeze,  
+# Whispers through the swaying trees.  
 # 
-# Fields adorned in vibrant hues,  
-# Morning dew and evening blues,  
-# Hearts awake in sun’s embrace,  
-# Time moves slow in summer’s grace., spec-type => (Routine), test-function-input => [], wrapper => Routine::WrapHandle.new}
+# Fields alive with blooms in cheer,  
+# Endless days that draw us near,  
+# Summer’s song, a sweet embrace,  
+# Nature’s smile on every face., spec-type => (Routine), test-function-input => [], wrapper => Routine::WrapHandle.new}
 ```
 
 -----
@@ -181,8 +181,8 @@ say $gBestPoem.nodes<judge>;
 
 ### LLM functors introduction
 
-- Since the very beginning, the functions produced by all functions were actually blocks (`Block:D`).
-  It was in my TODO list instead of blocks to produce functors (function objects). 
+- Since the very beginning, the functions produced by "LLM::Functions" were actually blocks (`Block:D`).
+  It was in my TODO list for a long time instead of blocks to produce functors (function objects). 
   For "LLM::Graph" that is/was necessary in order to make the node-specs processing more adequate.
   - So, `llm-function` produces functors (`LLM::Function` objects) by default now.
   - The option "type" can be used to get blocks.
@@ -192,7 +192,7 @@ say $gBestPoem.nodes<judge>;
 - I thought that I should use the graph algorithms for topological sorting in order to navigate node dependencies
   during evaluation. 
 - Turned out, that is not necessary -- simple recursion is sufficient.
-  - From the Notes specs, a directed graph (`Graph` object) is made.
+  - From the nodes specs, a directed graph (a `Graph` object) is made.
   - `Graph`'s method `reverse` is used to get the directed computational dependency graph.
   - That latter graph is used in the node-evaluation recursion.
 
@@ -209,11 +209,13 @@ say $gBestPoem.nodes<judge>;
 
 ### Special graph plotting
 
-- Of course it is nice to have the graph visualized.
+- Of course, it is nice to have the LLM-graphs visualized.
 - Instead of the generic graph visualization provided by the package "Graph" (method `dot`)
   a more informative graph plot is produced in which the different types of notes have different shapes.
   - The graph vertex shapes help distinguishing LLM-nodes from just-Raku-nodes.
   - Also, test function dependencies are designated with dashed arrows.
+  - The shapes in the graph plot can be tuned by the user.
+  - See the Jupyter notebook ["Graph-plots-interpretation-guide.ipynb"](./docs/Graph-plots-interpretation-guide.ipynb).
 
 -----
 
