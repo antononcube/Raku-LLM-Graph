@@ -212,12 +212,12 @@ say $gBestPoem.nodes<judge>;
   - [ ] TODO Asynchronous execution support
 - [ ] TODO Testing
   - [X] DONE LLM-graph initialization
-  - [ ] TODO Simple evaluations
+  - [X] DONE Simple evaluations
 - [ ] TODO Documentation
   - [X] DONE Useful README
   - [X] DONE [Best poet notebook](./docs/Best-poet.ipynb).
   - [X] DONE [Comprehensive text summary notebook](./docs/Summarize-large-text.ipynb).
-  - [ ] TODO Visual dictionary
+  - [X] DONE [Visual dictionary](./docs/Graph-plots-interpretation-guide.ipynb)
   - [ ] TODO Demo video
 
 -----
