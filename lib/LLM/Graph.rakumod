@@ -267,6 +267,15 @@ class LLM::Graph
             %inputs = %!nodes{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
         }
 
+        # Select the inputs that are promises
+        my @inputPromises = %inputs.grep({ $_.value ~~ Promise:D })».value;
+
+        # Wait for all promises to finish
+        if @inputPromises {
+            Promise.allof(@inputPromises);
+            %inputs .= map({ $_.value ~~ Promise:D ?? ($_.key => $_.value.result) !! $_ });
+        }
+
         # Node function info
         my &func = %!nodes{$node}<eval-function> // %!nodes{$node}<llm-function> // %!nodes{$node}<listable-llm-function>;
         my $result = self.eval-func(&func, %inputs, :$pos-arg);
