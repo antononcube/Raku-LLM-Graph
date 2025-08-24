@@ -12,6 +12,7 @@ class LLM::Graph
     has %.nodes is required;
     has $.graph = Whatever;
     has $.llm-evaluator is rw = Whatever;
+    has Bool $.async is rw = False;
 
     constant @ALLOWED_KEYS = <eval-function llm-function listable-llm-function input test-function test-function-input>;
     constant %ALLOWED = @ALLOWED_KEYS.map({ $_ => True }).hash;
@@ -21,22 +22,21 @@ class LLM::Graph
     #======================================================
     submethod BUILD(:%!nodes = %(),
                     :$!graph = Whatever,
-                    :$!llm-evaluator = Whatever) {
+                    :$!llm-evaluator = Whatever,
+                    :$!async = False
+                    ) {
         if $!llm-evaluator.isa(Whatever) {
             $!llm-evaluator = llm-evaluator(llm-configuration(Whatever));
         }
     }
 
-    multi method new(Hash $nodes) {
-        self.bless(:$nodes, graph => Whatever);
+
+    multi method new(%nodes, :$llm-evaluator = Whatever, :$async = False) {
+        self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async);
     }
 
-    multi method new(%nodes, :$llm-evaluator = Whatever) {
-        self.bless(:%nodes, graph => Whatever, :$llm-evaluator);
-    }
-
-    multi method new(:%nodes!, :$llm-evaluator = Whatever) {
-        self.bless(:%nodes, graph => Whatever, :$llm-evaluator);
+    multi method new(:%nodes!, :$llm-evaluator = Whatever, :$async = False) {
+        self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async);
     }
 
     #======================================================
@@ -126,13 +126,29 @@ class LLM::Graph
     method normalize-nodes() {
         for %!nodes.kv -> $k, $node {
             given $node {
+                when ($_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D) && self.async {
+                    %!nodes{$k} = %( eval-function => {say '>>>> Promise Str'; start llm-function($node)}, spec-type => Str )
+                }
+
                 when $_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D {
                     %!nodes{$k} = %( llm-function => llm-function($_), spec-type => Str )
                 }
 
                 # &llm-function returns functors by default since "LLM::Functions:ver<0.3.3>"
+                when LLM::Function:D && self.async {
+                    %!nodes{$k} = %( eval-function => -> **@args, *%args {say '>>>> Promise LLM::Function';  start $node(|@args, |%args) }, spec-type => LLM::Function )
+                }
+
                 when LLM::Function:D {
                     %!nodes{$k} = %( llm-function => $_, spec-type => LLM::Function )
+                }
+
+                when Routine:D && self.async {
+                    my $wrapper = $_.wrap(-> |c {
+                        my $res = callsame;
+                        start llm-synthesize($res, :$!llm-evaluator)
+                    });
+                    %!nodes{$k} = %( eval-function => $_, :$wrapper, spec-type => Routine )
                 }
 
                 when Routine:D {
@@ -281,6 +297,10 @@ class LLM::Graph
         my $result = self.eval-func(&func, %inputs, :$pos-arg);
 
         # Register result
+        if self.graph.vertex-out-degree($node) == 0 && $result ~~ Promise:D {
+            Promise.allof($result);
+            $result = $result.result;
+        }
         %!nodes{$node}<result> = $result;
 
         return $result;
