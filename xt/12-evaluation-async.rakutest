@@ -1,0 +1,73 @@
+use v6.d;
+use Test;
+
+#use lib <. lib>;
+use LLM::Graph;
+use Graph;
+use LLM::Functions;
+
+subtest {
+        my %rules =
+                poet1 => {
+                        eval-function => { start llm-synthesize("Write a short poem about summer.") }
+                },
+                poet2 => {
+                        eval-function => { start llm-synthesize("Write a haiku about winter.") }
+                },
+                judge => sub ($poet1, $poet2) {
+                        ["Choose the best composition of your among these:\n\n",
+                         "1) Poem1: $poet1",
+                         "2) Poem2: $poet2",
+                         "and copy it:"].join("\n\n")
+                };
+
+        ## 1
+        ok LLM::Graph.new(%rules);
+
+        ## 2
+        my $g = LLM::Graph.new(%rules);
+        isa-ok $g.create-graph.graph, Graph:D, 'got graph';
+
+        ## 3
+        isa-ok $g.eval.nodes<judge><result>, Str:D, 'got judgemet';
+
+        ## 4
+        is
+                $g.eval.nodes<poet1 poet2>.map(*<result>).all ~~ Promise:D,
+                True,
+                'All poets of promises';
+}, 'ad-hoc Promise functions';
+
+subtest {
+        my %rules =
+                poet1 => "Write a short poem about summer.",
+                poet2 => "Write a haiku about winter.",
+                judge => sub ($poet1, $poet2) {
+                        ["Choose the best composition of your among these:\n\n",
+                         "1) Poem1: $poet1",
+                         "2) Poem2: $poet2",
+                         "and copy it:"].join("\n\n")
+                };
+
+        ## 1
+        ok LLM::Graph.new(%rules, :async);
+
+        ## 2
+        my $g = LLM::Graph.new(%rules, :async);
+        isa-ok $g.eval.nodes<judge><result>, Str:D, 'got judgemet';
+
+        ## 3
+        is
+                $g.eval.nodes<poet1 poet2>.map(*<result>).all ~~ Promise:D,
+                True,
+                'All poets of promises';
+
+        ## 4
+        is
+                $g.eval.nodes<judge><result> ~~ Str:D,
+                True,
+                'The judge is a string (leaf, out degree == 0)';
+
+}, 'explicit async';
+
+done-testing;
