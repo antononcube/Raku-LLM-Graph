@@ -221,8 +221,10 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
   - [ ] TODO Front-end simple sub(s)
     - Like `llm-graph`.
   - [X] DONE Special DOT representation
+  - [X] DONE Asynchronous execution support
+    - [X] DONE Inputs computed via promises
+    - [X] DONE LLM-graph global ":async" option
   - [ ] TODO CLI interface that takes Raku or JSON specs of LLM-graphs
-  - [ ] TODO Asynchronous execution support
 - [ ] TODO Testing
   - [X] DONE LLM-graph initialization
   - [X] DONE Simple evaluations
