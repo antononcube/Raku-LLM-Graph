@@ -31,11 +31,11 @@ class LLM::Graph
     }
 
 
-    multi method new(%nodes, :$llm-evaluator = Whatever, Bool:D :$async = False) {
+    multi method new(%nodes, :$llm-evaluator = Whatever, Bool:D :submit(:$async) = False) {
         self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async);
     }
 
-    multi method new(:%nodes!, :$llm-evaluator = Whatever, Bool:D :$async = False) {
+    multi method new(:%nodes!, :$llm-evaluator = Whatever, Bool:D :submit(:$async) = False) {
         self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async);
     }
 
@@ -239,7 +239,7 @@ class LLM::Graph
         return $result;
     }
 
-    method eval-test-node($node, :$pos-arg = '', *%named-args) {
+    method eval-test-node($node, :$pos-arg = '', :%named-args = %()) {
 
         return $pos-arg if $node eq '$_';
 
@@ -251,7 +251,7 @@ class LLM::Graph
 
         my %inputs;
         if %!nodes{$node}<test-function-input> {
-            %inputs = %!nodes{$node}<test-function-input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
+            %inputs = %!nodes{$node}<test-function-input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, :%named-args) })
         }
 
         # Node function info
@@ -264,7 +264,7 @@ class LLM::Graph
         return $result;
     }
 
-    method eval-node($node, :$pos-arg = '', *%named-args) {
+    method eval-node($node, :$pos-arg = '', :%named-args = %()) {
 
         return $pos-arg if $node eq '$_';
 
@@ -272,7 +272,7 @@ class LLM::Graph
 
         return %!nodes{$node}<result> with %!nodes{$node}<result>;
 
-        if !self.eval-test-node($node, :$pos-arg, |%named-args) {
+        if !self.eval-test-node($node, :$pos-arg, :%named-args) {
             # Register non-result
             %!nodes{$node}<result> = Nil;
             return Nil;
@@ -280,7 +280,7 @@ class LLM::Graph
 
         my %inputs;
         if %!nodes{$node}<input> {
-            %inputs = %!nodes{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, |%named-args) })
+            %inputs = %!nodes{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, :%named-args) })
         }
 
         # Select the inputs that are promises
@@ -352,7 +352,7 @@ class LLM::Graph
         # For each result node recursively evaluate its inputs
         for @resNodes -> $node {
             # Make sure each evaluated node has the result in its hashmap
-            self.eval-node($node, :$pos-arg, |%named-args)
+            self.eval-node($node, :$pos-arg, :%named-args)
         }
 
         # Unwrap wrapped subs
