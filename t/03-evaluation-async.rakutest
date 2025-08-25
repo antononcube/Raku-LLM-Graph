@@ -15,7 +15,7 @@ subtest {
                 eval-function => { start {sleep 0.1;'out2'} }
             },
             judge => {
-                eval-function => sub ($poet1, $poet2) {"$poet1 : $poet2"}
+                eval-function => sub ($poet1, $poet2) { start "$poet1 : $poet2"}
             };
 
     ## 1
