@@ -23,7 +23,7 @@ class LLM::Graph
     submethod BUILD(:%!nodes = %(),
                     :$!graph = Whatever,
                     :$!llm-evaluator = Whatever,
-                    :$!async = False
+                    Bool:D :$!async = False
                     ) {
         if $!llm-evaluator.isa(Whatever) {
             $!llm-evaluator = llm-evaluator(llm-configuration(Whatever));
@@ -31,11 +31,11 @@ class LLM::Graph
     }
 
 
-    multi method new(%nodes, :$llm-evaluator = Whatever, :$async = False) {
+    multi method new(%nodes, :$llm-evaluator = Whatever, Bool:D :$async = False) {
         self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async);
     }
 
-    multi method new(:%nodes!, :$llm-evaluator = Whatever, :$async = False) {
+    multi method new(:%nodes!, :$llm-evaluator = Whatever, Bool:D :$async = False) {
         self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async);
     }
 
