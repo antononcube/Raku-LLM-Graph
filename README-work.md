@@ -102,6 +102,9 @@ LLM::Graph.new(...)(input)
 - `LLM::Graph` objects have the attribute `llm-evaluator` that is used as a default (or fallback)
   LLM evaluator object. (See [AAp1].)
 
+- The Boolean option "async" in `LLM::Graph.new` can be used to specify if the LLM submissions should be made asynchronous.
+  - The class `Promise` is used.
+
 -----
 
 ## Usage examples
