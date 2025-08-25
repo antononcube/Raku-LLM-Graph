@@ -11,7 +11,7 @@ my %rules =
         combine => { eval-function => sub (Str:D $fun1, Str:D $fun2) { "$fun1 : $fun2" } }
         ;
 
-subtest {
+#subtest {
         ## 1
         ok LLM::Graph.new(%rules);
 
@@ -24,10 +24,17 @@ subtest {
 
         ## 4
         is
+                $g({fun1 => 'in1', fun2 => 'in2'}, nodes => 'judge').nodes<combine><result>,
+                'in1 : in2',
+                'overriding inputs and end-node spec; graph object is callable';
+
+        ## 5
+        is
                 $g(fun1 => 'in1', fun2 => 'in2').nodes<combine><result>,
                 'in1 : in2',
-                'iverriding inputs; graph object is callable';
-}, 'graph creation and evaluations';
+                'overriding inputs; graph object is callable';
+
+#}, 'graph creation and evaluations';
 
 subtest {
 

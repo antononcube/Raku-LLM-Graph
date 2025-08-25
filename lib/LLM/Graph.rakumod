@@ -306,7 +306,17 @@ class LLM::Graph
         return $result;
     }
 
-    method eval($pos-arg = '', *%named-args, :$nodes = Whatever) {
+    multi method eval($arg, $nodes = Whatever) {
+        return $arg ~~ Map:D ?? self.eval(named-args => $arg, :$nodes) !! self.eval(named-args => {'$_' => $arg}, :$nodes);
+    }
+
+    multi method eval(*%named-args) {
+        return self.eval(:%named-args, nodes => Whatever);
+    }
+
+    multi method eval(:named(:%named-args) = %(), :$nodes = Whatever) {
+
+        my $pos-arg = %named-args<$_> // '';
 
         # Make the graph if not made already
         # Maybe it should be always created.
@@ -361,5 +371,5 @@ class LLM::Graph
         return self;
     }
 
-    method CALL-ME(|c) { self.eval(|c); }
+    submethod CALL-ME(|c) { c.list.elems == 0 ?? self.eval(c.hash) !! self.eval(|c); }
 }
