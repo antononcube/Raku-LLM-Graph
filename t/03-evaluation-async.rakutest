@@ -1,0 +1,39 @@
+use v6.d;
+use Test;
+
+#use lib <. lib>;
+use LLM::Graph;
+use Graph;
+use LLM::Functions;
+
+subtest {
+    my %rules =
+            poet1 => {
+                eval-function => { start {sleep 0.1;'out1'} }
+            },
+            poet2 => {
+                eval-function => { start {sleep 0.1;'out2'} }
+            },
+            judge => {
+                eval-function => sub ($poet1, $poet2) {"$poet1 : $poet2"}
+            };
+
+    ## 1
+    ok LLM::Graph.new(%rules):async;
+
+    ## 2
+    my $g = LLM::Graph.new(%rules):async;
+    isa-ok $g.create-graph.graph, Graph:D, 'got graph';
+
+    ## 3
+    is $g.eval.nodes<judge><result>, 'out1 : out2', 'got judgemet';
+
+    ## 4
+    is
+            $g.eval.nodes<poet1 poet2>.map(*<result>).all ~~ Promise:D,
+            True,
+            'All poets of promises';
+
+}, 'ad-hoc Promise functions (no-LLM)';
+
+done-testing;
