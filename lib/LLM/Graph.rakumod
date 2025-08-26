@@ -46,7 +46,8 @@ class LLM::Graph
         LLM::Graph.new(
                 nodes => %!nodes.clone,
                 graph => $!graph.defined ?? $!graph.clone !! Whatever,
-                llm-evaluator => $!llm-evaluator.defined ?? $!llm-evaluator.clone !! Whatever)
+                llm-evaluator => $!llm-evaluator.defined ?? $!llm-evaluator.clone !! Whatever,
+                :$!async)
     }
 
     #======================================================
@@ -127,23 +128,23 @@ class LLM::Graph
         for %!nodes.kv -> $k, $node {
             given $node {
                 when ($_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D) && self.async {
-                    %!nodes{$k} = %( eval-function => {start llm-function($node)}, spec-type => Str )
+                    %!nodes{$k} = %( eval-function => {start llm-synthesize($node)}, spec-type => Str )
                 }
 
-                when $_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D {
+                when ($_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D) && !self.async {
                     %!nodes{$k} = %( llm-function => llm-function($_), spec-type => Str )
                 }
 
                 # &llm-function returns functors by default since "LLM::Functions:ver<0.3.3>"
-                when LLM::Function:D && self.async {
+                when $_ ~~ LLM::Function:D && self.async {
                     %!nodes{$k} = %( eval-function => -> **@args, *%args {start $node(|@args, |%args) }, spec-type => LLM::Function )
                 }
 
-                when LLM::Function:D {
+                when $_ ~~ LLM::Function:D && !self.async {
                     %!nodes{$k} = %( llm-function => $_, spec-type => LLM::Function )
                 }
 
-                when Routine:D && self.async {
+                when $_ ~~ Routine:D && self.async {
                     my $wrapper = $_.wrap(-> |c {
                         my $res = callsame;
                         start llm-synthesize($res, :$!llm-evaluator)
@@ -151,7 +152,7 @@ class LLM::Graph
                     %!nodes{$k} = %( eval-function => $_, :$wrapper, spec-type => Routine )
                 }
 
-                when Routine:D {
+                when $_ ~~ Routine:D && !self.async {
                     my $wrapper = $_.wrap(-> |c {
                         my $res = callsame;
                         llm-synthesize($res, :$!llm-evaluator)
