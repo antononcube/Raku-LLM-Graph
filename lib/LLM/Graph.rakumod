@@ -129,7 +129,7 @@ class LLM::Graph
         for %!nodes.kv -> $k, $node {
             given $node {
                 when ($_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D) && self.async {
-                    %!nodes{$k} = %( eval-function => {start llm-synthesize($node)}, spec-type => Str )
+                    %!nodes{$k} = %( eval-function => { start llm-synthesize($node) }, spec-type => Str )
                 }
 
                 when ($_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D) && !self.async {
@@ -138,7 +138,7 @@ class LLM::Graph
 
                 # &llm-function returns functors by default since "LLM::Functions:ver<0.3.3>"
                 when $_ ~~ LLM::Function:D && self.async {
-                    %!nodes{$k} = %( eval-function => -> **@args, *%args {start $node(|@args, |%args) }, spec-type => LLM::Function )
+                    %!nodes{$k} = %( eval-function => -> **@args, *%args { start $node(|@args, |%args) }, spec-type => LLM::Function )
                 }
 
                 when $_ ~~ LLM::Function:D && !self.async {
@@ -228,13 +228,17 @@ class LLM::Graph
         # Positional and named arguments
         my @posArgs;
         my %namedArgs;
+        my %namedSlurpyArgs;
         for @args -> %rec {
             if !%rec<named> { @posArgs[%rec<position>] = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} // %rec<default> }
-            if %rec<named> { %namedArgs{%rec<name>} = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} // %rec<default> }
+            if %rec<named> {
+                %namedArgs{%rec<name>} = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} // %rec<default>;
+                %namedSlurpyArgs{%rec<name>} = %rec<slurpy>;
+            }
         }
 
         @posArgs .= map({ $_.defined || $_.isa(Whatever) ?? $_ !! $pos-arg });
-        %namedArgs .= map({ $_.key.subst(/ ^ <[$%@]> /) => $_.value });
+        %namedArgs .= map({ %namedSlurpyArgs{$_.key} ?? $_ !! ($_.key.subst(/ ^ <[$%@]> /) => $_.value) });
 
         # Passing positional arguments with non-default values is complicated.
         my $result = &func(|@posArgs, |%namedArgs);
