@@ -127,7 +127,7 @@ class LLM::Graph
         for %!nodes.kv -> $k, $node {
             given $node {
                 when ($_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D) && self.async {
-                    %!nodes{$k} = %( eval-function => {say '>>>> Promise Str'; start llm-function($node)}, spec-type => Str )
+                    %!nodes{$k} = %( eval-function => {start llm-function($node)}, spec-type => Str )
                 }
 
                 when $_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D {
@@ -136,7 +136,7 @@ class LLM::Graph
 
                 # &llm-function returns functors by default since "LLM::Functions:ver<0.3.3>"
                 when LLM::Function:D && self.async {
-                    %!nodes{$k} = %( eval-function => -> **@args, *%args {say '>>>> Promise LLM::Function';  start $node(|@args, |%args) }, spec-type => LLM::Function )
+                    %!nodes{$k} = %( eval-function => -> **@args, *%args {start $node(|@args, |%args) }, spec-type => LLM::Function )
                 }
 
                 when LLM::Function:D {
@@ -288,7 +288,8 @@ class LLM::Graph
 
         # Wait for all promises to finish
         if @inputPromises {
-            Promise.allof(@inputPromises);
+            my $allDone = Promise.allof(@inputPromises);
+            await($allDone);
             %inputs .= map({ $_.value ~~ Promise:D ?? ($_.key => $_.value.result) !! $_ });
         }
 
@@ -298,7 +299,7 @@ class LLM::Graph
 
         # Register result
         if self.graph.vertex-out-degree($node) == 0 && $result ~~ Promise:D {
-            Promise.allof($result);
+            await($result);
             $result = $result.result;
         }
         %!nodes{$node}<result> = $result;
