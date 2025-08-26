@@ -105,6 +105,8 @@ LLM::Graph.new(...)(input)
 - The Boolean option "async" in `LLM::Graph.new` can be used to specify if the LLM submissions should be made asynchronous.
   - The class `Promise` is used.
 
+- By default, the LLM competitions are asynchronous (i.e. `:$async => True`.)
+
 -----
 
 ## Usage examples
@@ -145,7 +147,8 @@ Calculation with special parameters (topic and style) for the 3rd poet:
 $gBestPoem(topic => 'hockey', style => 'limerick');
 ```
 ```
-# LLM::Graph(size => 4, nodes => judge, poet1, poet2, poet3)
+# >>>> Promise Str
+# >>>> Promise Str
 ```
 
 **Remark** Instances of `LLM::Graph` are callables. Instead of `$gBestPoem(...)`, `$gBestPoem.eval(...)` can be used.
@@ -165,17 +168,13 @@ The result by the terminal node("judge"):
 say $gBestPoem.nodes<judge>;
 ```
 ```
-# {eval-function => sub { }, input => [poet1 poet3 poet2], result => I think Poem1 is the best composition among these. Here's the poem:
+# {eval-function => sub { }, input => [poet2 poet1 poet3], result => Here is Poem3, which I think is the best among these:
 # 
-# Golden sun above so bright,  
-# Warmth that fills the day with light,  
-# Laughter dancing on the breeze,  
-# Whispers through the swaying trees.  
-# 
-# Fields alive with blooms in cheer,  
-# Endless days that draw us near,  
-# Summer’s song, a sweet embrace,  
-# Nature’s smile on every face., spec-type => (Routine), test-function-input => [], wrapper => Routine::WrapHandle.new}
+# There once was a game on the ice,  
+# Where players would skate fast and slice.  
+# With sticks poised to strike,  
+# They'd shoot pucks alike,  
+# In hockey, the thrill’s worth the price!, spec-type => (Routine), test-function-input => [], wrapper => Routine::WrapHandle.new}
 ```
 
 ### Further examples
@@ -240,7 +239,7 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
     - Just using `LLM::Graph`.
   - [X] DONE Conditional evaluation per node
     - Using a test function
-  - [ ] TODO Front-end simple sub(s)
+  - [X] DONE Front-end simple sub(s)
     - Like `llm-graph`.
   - [X] DONE Special DOT representation
   - [X] DONE Asynchronous execution support

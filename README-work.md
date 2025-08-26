@@ -105,6 +105,8 @@ LLM::Graph.new(...)(input)
 - The Boolean option "async" in `LLM::Graph.new` can be used to specify if the LLM submissions should be made asynchronous.
   - The class `Promise` is used.
 
+- By default, the LLM competitions are asynchronous (i.e. `:$async => True`.)
+
 -----
 
 ## Usage examples
@@ -221,7 +223,7 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
     - Just using `LLM::Graph`.
   - [X] DONE Conditional evaluation per node
     - Using a test function
-  - [ ] TODO Front-end simple sub(s)
+  - [X] DONE Front-end simple sub(s)
     - Like `llm-graph`.
   - [X] DONE Special DOT representation
   - [X] DONE Asynchronous execution support
