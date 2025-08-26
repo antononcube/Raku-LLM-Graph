@@ -11,7 +11,7 @@ my %rules =
         combine => { eval-function => sub (Str:D $fun1, Str:D $fun2) { "$fun1 : $fun2" } }
         ;
 
-#subtest {
+subtest {
         ## 1
         ok LLM::Graph.new(%rules);
 
@@ -34,7 +34,7 @@ my %rules =
                 'in1 : in2',
                 'overriding inputs; graph object is callable';
 
-#}, 'graph creation and evaluations';
+}, 'graph creation and evaluations';
 
 subtest {
 
@@ -55,5 +55,31 @@ subtest {
         is $g.drop-result().nodes.nodemap({ $_<result> // 'NONE' })<fun1 fun2 combine>, ['NONE', 'NONE', 'NONE'];
 
 }, 'drop results';
+
+subtest {
+
+        my %rules =
+                poet1 => { eval-function => {'out1'} },
+                poet2 => { eval-function => {'out2'} },
+                poet3 => {
+                        eval-function => {'out3'},
+                        test-function => sub ($with-russian) { $with-russian ~~ Bool:D && $with-russian || $with-russian.Str.lc ∈ <true yes> }
+                },
+                judge => { eval-function => sub (Str:D $poet1, Str:D $poet2, Str:D $poet3) { $poet3.defined && $poet3 ?? $poet3 !! $poet2 } };
+
+        ok LLM::Graph.new(%rules);
+
+        my $g = LLM::Graph.new(%rules);
+
+#        ok $g();
+
+#        is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['out1', 'out2', 'NONE', 'out2'];
+
+        $g.drop-result();
+        ok $g.eval(:with-russian);
+
+        is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['out1', 'out2', 'out3', 'out3'];
+
+}, 'test function';
 
 done-testing;
