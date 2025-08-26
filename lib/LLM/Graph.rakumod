@@ -12,7 +12,7 @@ class LLM::Graph
     has %.nodes is required;
     has $.graph = Whatever;
     has $.llm-evaluator is rw = Whatever;
-    has Bool $.async is rw = False;
+    has Bool $.async is rw = True;
 
     constant @ALLOWED_KEYS = <eval-function llm-function listable-llm-function input test-function test-function-input>;
     constant %ALLOWED = @ALLOWED_KEYS.map({ $_ => True }).hash;
@@ -23,7 +23,7 @@ class LLM::Graph
     submethod BUILD(:%!nodes = %(),
                     :$!graph = Whatever,
                     :$!llm-evaluator = Whatever,
-                    Bool:D :$!async = False
+                    Bool:D :$!async = True
                     ) {
         if $!llm-evaluator.isa(Whatever) {
             $!llm-evaluator = llm-evaluator(llm-configuration(Whatever));
@@ -31,11 +31,11 @@ class LLM::Graph
     }
 
 
-    multi method new(%nodes, :$llm-evaluator = Whatever, Bool:D :submit(:$async) = False) {
+    multi method new(%nodes, :e(:$llm-evaluator) = Whatever, Bool:D :a(:$async) = True) {
         self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async);
     }
 
-    multi method new(:%nodes!, :$llm-evaluator = Whatever, Bool:D :submit(:$async) = False) {
+    multi method new(:%nodes!, :e(:$llm-evaluator) = Whatever, Bool:D :a(:$async) = True) {
         self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async);
     }
 
@@ -372,4 +372,12 @@ class LLM::Graph
     }
 
     submethod CALL-ME(|c) { c.list.elems == 0 ?? self.eval(c.hash) !! self.eval(|c); }
+}
+
+#| Creator of an LLM::Graph object.
+#| C<%nodes> -- LLM graph node specs.
+#| C<:e(:$llm-evaluator)> -- LLM evaluator spec.
+#| C<:a(:$async)> -- Should the evaluations of LLM computation specs be asynchronous or not.
+multi sub llm-graph(%nodes, :e(:$llm-evalutor) = Whatever, Bool:D :a(:$async) = True) is export {
+    LLM::Graph.new(:%nodes, :$llm-evalutor, :$async)
 }
