@@ -68,6 +68,7 @@ class LLM::Graph
     # A more universal name would be "result-drop". (But I do not like it.)
     multi method drop-result() {
         %!nodes.map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
+        $!graph = Whatever;
         return self;
     }
 
@@ -233,6 +234,7 @@ class LLM::Graph
         }
 
         @posArgs .= map({ $_.defined || $_.isa(Whatever) ?? $_ !! $pos-arg });
+        %namedArgs .= map({ $_.key.subst(/ ^ <[$%@]> /) => $_.value });
 
         # Passing positional arguments with non-default values is complicated.
         my $result = &func(|@posArgs, |%namedArgs);
@@ -308,15 +310,7 @@ class LLM::Graph
         return $result;
     }
 
-    multi method eval($arg, $nodes = Whatever) {
-        return $arg ~~ Map:D ?? self.eval(named-args => $arg, :$nodes) !! self.eval(named-args => {'$_' => $arg}, :$nodes);
-    }
-
-    multi method eval(*%named-args) {
-        return self.eval(:%named-args, nodes => Whatever);
-    }
-
-    multi method eval(:named(:%named-args) = %(), :$nodes = Whatever) {
+    multi method eval(%named-args = %(), $nodes = Whatever) {
 
         my $pos-arg = %named-args<$_> // '';
 
@@ -371,6 +365,14 @@ class LLM::Graph
         # %!nodes .= map({ if $_.value<wrapper> { $_.value<eval-function>.unwrap($_.value<wrapper>) }; $_ });
 
         return self;
+    }
+
+    multi method eval($arg, $nodes = Whatever) {
+        return self.eval({'$_' => $arg}, :$nodes);
+    }
+
+    multi method eval(*%named-args) {
+        return self.eval(%named-args.Hash, nodes => Whatever);
     }
 
     submethod CALL-ME(|c) { c.list.elems == 0 ?? self.eval(c.hash) !! self.eval(|c); }
