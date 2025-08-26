@@ -18,6 +18,8 @@ subtest {
     is $g1.node-spec-errors().elems, 0, 'no errors for valid rules';
     is $g1.graph.isa(Whatever), True, 'default graph is empty';
 
+    isa-ok llm-graph($valid-rules):a, LLM::Graph:D;
+
 }, 'valid rules';
 
 subtest {
