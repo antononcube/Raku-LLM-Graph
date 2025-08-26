@@ -38,6 +38,7 @@ subtest {
                 'All poets of promises';
 }, 'ad-hoc Promise functions';
 
+
 subtest {
         my %rules =
                 poet1 => "Write a short poem about summer.",
@@ -54,19 +55,22 @@ subtest {
 
         ## 2
         my $g = LLM::Graph.new(%rules, :async);
-        isa-ok $g.eval.nodes<judge><result>, Str:D, 'got judgemet';
+        isa-ok
+                $g.eval.nodes<judge><result>,
+                Str:D,
+                'The judge is a string (leaf, out degree == 0)';
 
         ## 3
         is
-                $g.eval.nodes<poet1 poet2>.map(*<result>).all ~~ Promise:D,
+                $g.nodes<poet1 poet2>.map(*<result>).all ~~ Promise:D,
                 True,
                 'All poets of promises';
 
         ## 4
         is
-                $g.eval.nodes<judge><result> ~~ Str:D,
+                ([||] $g.nodes<poet1 poet2>.map({ $_<result>.result }).map({ $g.nodes<judge><result>.contains($_) })),
                 True,
-                'The judge is a string (leaf, out degree == 0)';
+                'The judge has one of the poems';
 
 }, 'explicit async';
 
