@@ -44,15 +44,15 @@ subtest {
 
         is $g.nodes.nodemap(*<result>)<fun1 fun2 combine>, ['out1', 'out2', 'out1 : out2'];
 
-        ok $g.drop-result(<fun1 fun2>);
+        ok $g.clear(<fun1 fun2>);
 
         is $g.nodes.nodemap({ $_<result> // 'NONE' })<fun1 fun2 combine>, ['NONE', 'NONE', 'out1 : out2'];
 
         ok $g();
-        is $g.drop-result('fun2').nodes.nodemap({ $_<result> // 'NONE' })<fun1 fun2 combine>, ['out1', 'NONE', 'out1 : out2'];
+        is $g.clear('fun2').nodes.nodemap({ $_<result> // 'NONE' })<fun1 fun2 combine>, ['out1', 'NONE', 'out1 : out2'];
 
         ok $g();
-        is $g.drop-result().nodes.nodemap({ $_<result> // 'NONE' })<fun1 fun2 combine>, ['NONE', 'NONE', 'NONE'];
+        is $g.clear().nodes.nodemap({ $_<result> // 'NONE' })<fun1 fun2 combine>, ['NONE', 'NONE', 'NONE'];
 
 }, 'drop results';
 
@@ -71,11 +71,12 @@ subtest {
 
         my $g = LLM::Graph.new(%rules);
 
-#        ok $g();
+        ok $g();
 
-#        is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['out1', 'out2', 'NONE', 'out2'];
+        is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['out1', 'out2', 'NONE', 'out2'];
 
-        $g.drop-result();
+        $g.clear();
+
         ok $g.eval(:with-russian);
 
         is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['out1', 'out2', 'out3', 'out3'];
