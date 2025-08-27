@@ -11,6 +11,7 @@ role LLM::Graph::Formatish does  Graph::Formatish {
             :format(:$output-format) is copy = Whatever,
             Str:D :$engine = 'dot',
             :node-shape(:$node-shapes) is copy = Whatever,
+            :t(:$theme) is copy = Whatever,
             *%args) {
 
         # No graph
@@ -19,10 +20,25 @@ role LLM::Graph::Formatish does  Graph::Formatish {
             return '';
         }
 
+        # Process theme
+        if $theme.isa(Whatever) { $theme = 'default'}
+        if $theme ~~ Str:D && $theme.lc ∈ <default auto automatic> { $theme = 'default'}
+        if $theme ~~ Str:D && $theme.lc ∈ <⟂ ortho orthogonal octagon octagons> { $theme = 'ortho'}
+        die 'The value of the option theme is expected to be Whatever or one of "default" or "ortho".'
+        unless $theme ~~ Str:D && $theme ∈ <ortho default>;
+
         # Process node shapes
         my %default-node-shapes = Routine => 'ellipse', :RoutineWrapper,
                                   'LLM::Function' => 'ellipse', Str => 'egg',
                                   Callable => 'box', Input => 'parallelogram';
+        my %ortho-node-shapes = merge-hash(%default-node-shapes,
+                {
+                        Str => 'note',
+                        Routine => 'doubleoctagon',
+                        :!RoutineWrapper,
+                        'LLM::Function' => 'octagon'
+                });
+        if $theme eq 'ortho' { %default-node-shapes = %ortho-node-shapes}
         if $node-shapes.isa(Whatever) { $node-shapes = %() }
         die 'The values of node-shapes is expected to be a hashmap or Whatever.'
         unless $node-shapes ~~ Map:D;
@@ -31,6 +47,11 @@ role LLM::Graph::Formatish does  Graph::Formatish {
 
         # Delegate to Graph.dot
         my %args2 = %args.grep({ $_.key ∉ <weights node-shape icons > });
+        if $theme eq 'ortho' {
+                %args2 = merge-hash( {node-color => 'Grey', edge-color => 'DimGrey', edge-width => 0.8, splines => 'ortho'}, %args2);
+        } else {
+                %args2 = merge-hash( {edge-width => 0.8}, %args2);
+        }
 
         my $res = self.graph.dot(:weights, output-format => 'dot', node-shape => $node-shapes<Callable>, |%args2);
 
