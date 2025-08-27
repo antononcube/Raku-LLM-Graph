@@ -12,10 +12,10 @@ my %rules =
         ;
 
 ## 1
-ok LLM::Graph.new(%rules);
+ok LLM::Graph.new(%rules, :!async);
 
 ## 2
-my $g = LLM::Graph.new(%rules);
+my $g = LLM::Graph.new(%rules, :!async);
 isa-ok $g.create-graph.graph, Graph:D;
 
 ## 3
@@ -37,7 +37,12 @@ Blanketing the earth in white,
 Winter’s breath is still.
 END
 
-say $g.eval(:$poet1, :$poet2).nodes<judge>;
-#ok $g.eval(:$poet1, :$poet2);
+#say $g.eval(:$poet1, :$poet2).nodes<judge>;
+isa-ok $g.eval(:$poet1).nodes<judge><result>, Str:D;
+#say $g.nodes<judge><result>;
+
+## 4
+say $g.nodes<poet1, poet2>.map(*<result>);
+is $g.nodes<poet1, poet2>.map(*<result>).all ~~ Str:D, True;
 
 done-testing;
