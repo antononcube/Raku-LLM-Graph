@@ -66,18 +66,37 @@ class LLM::Graph
     #======================================================
 
     # A more universal name would be "result-drop". (But I do not like it.)
-    multi method drop-result() {
-        %!nodes.map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
+    multi method clear() {
+        %!nodes.map({
+            if $_.value ~~ Map:D {
+                $_.value<result>:delete;
+                $_.value<input>:delete;
+                $_.value<test-function-result>:delete;
+                $_.value<test-function-input>:delete;
+            };
+            $_
+        });
         $!graph = Whatever;
         return self;
     }
 
-    multi method drop-result($node) {
-        return self.drop-result([$node,]);
+    multi method clear($node) {
+        return $node.isa(Whatever) ?? self.clear !! self.clear([$node,]);
     }
 
-    multi method drop-result(@nodes) {
-        %!nodes.grep({ $_.key ∈ @nodes }).map({ if $_.value ~~ Map:D { $_.value<result>:delete }; $_ });
+    multi method clear(@nodes) {
+        %!nodes
+                .grep({ $_.key ∈ @nodes })
+                .map({
+                    if $_.value ~~ Map:D {
+                        $_.value<result>:delete;
+                        $_.value<input>:delete;
+                        $_.value<test-function-result>:delete;
+                        $_.value<test-function-input>:delete;
+                    };
+                    $_
+                });
+        $!graph = Whatever;
         return self;
     }
 
