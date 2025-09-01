@@ -41,6 +41,11 @@ subtest {
                 'in1 : in2',
                 'overriding inputs; graph object is callable';
 
+        ## 6
+        dies-ok
+                { $g.eval('out111', [4,]) },
+                'Incorrect node spec';
+
 }, 'Graph creation and evaluations';
 
 #==========================================================
@@ -164,7 +169,8 @@ subtest {
         my %rules =
                 poet1 => { eval-function => {'out1'} },
                 poet2 => { eval-function => {'out2'} },
-                judge => { eval-function => sub ($poet1, $poet2) { "$poet1 : $poet2" } };
+                poet3 => { eval-function => {'out3'} },
+                judge => { eval-function => sub ($poet1, $poet2, $poet3) { "$poet1 : $poet2" } };
                 ;
 
         my $g = LLM::Graph.new(%rules, :$async);
@@ -177,11 +183,11 @@ subtest {
 
         ## 3
         $g.clear();
-        ok $g.eval(poet1 => 'mine1', poet2 => 'mine2');
+        ok $g.eval(poet1 => 'mine1', poet2 => 'mine2', poet3 => 'mine3');
 
         ## 2
-        say $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 judge>;
-        is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 judge>, ['mine1', 'mine2', 'mine1 : mine2'];
+        #say $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>;
+        is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['mine1', 'mine2', 'mine3', 'mine1 : mine2'];
 
 }, 'Node arguments propagation 1';
 
