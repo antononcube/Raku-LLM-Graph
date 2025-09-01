@@ -1,7 +1,7 @@
 {
   "name": "LLM::Graph",
   "description": "LLM::Graph can be used to efficiently schedule and combine multiple LLM generation steps for an optimal evaluation managing LLM submissions' concurrency.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "perl": "6.*",
   "authors": [
     "Anton Antonov"
