@@ -5,18 +5,25 @@ use Test;
 use LLM::Graph;
 use Graph;
 
-my %rules =
-        fun1 => { eval-function => {'out1'} },
-        fun2 => { eval-function => {'out2'} },
-        combine => { eval-function => sub (Str:D $fun1, Str:D $fun2) { "$fun1 : $fun2" } }
-        ;
+my $async = False;
 
+plan *;
+
+#==========================================================
+# Graph creation and evaluation
+#==========================================================
 subtest {
+        my %rules =
+                fun1 => { eval-function => {'out1'} },
+                fun2 => { eval-function => {'out2'} },
+                combine => { eval-function => sub (Str:D $fun1, Str:D $fun2) { "$fun1 : $fun2" } }
+                ;
+
         ## 1
-        ok LLM::Graph.new(%rules);
+        ok LLM::Graph.new(%rules, :$async);
 
         ## 2
-        my $g = LLM::Graph.new(%rules);
+        my $g = LLM::Graph.new(%rules, :$async);
         isa-ok $g.create-graph.graph, Graph:D;
 
         ## 3
@@ -34,11 +41,20 @@ subtest {
                 'in1 : in2',
                 'overriding inputs; graph object is callable';
 
-}, 'graph creation and evaluations';
+}, 'Graph creation and evaluations';
 
+#==========================================================
+# Clear results
+#==========================================================
 subtest {
+        # Same rules as in the previous subtest
+        my %rules =
+                fun1 => { eval-function => {'out1'} },
+                fun2 => { eval-function => {'out2'} },
+                combine => { eval-function => sub (Str:D $fun1, Str:D $fun2) { "$fun1 : $fun2" } }
+                ;
 
-        my $g = LLM::Graph.new(%rules);
+        my $g = LLM::Graph.new(%rules, :$async);
 
         ok $g();
 
@@ -54,8 +70,11 @@ subtest {
         ok $g();
         is $g.clear().nodes.nodemap({ $_<result> // 'NONE' })<fun1 fun2 combine>, ['NONE', 'NONE', 'NONE'];
 
-}, 'drop results';
+}, 'Clear results';
 
+#==========================================================
+# Test function use
+#==========================================================
 subtest {
 
         my %rules =
@@ -65,22 +84,78 @@ subtest {
                         eval-function => {'out3'},
                         test-function => sub ($with-russian) { $with-russian ~~ Bool:D && $with-russian || $with-russian.Str.lc ∈ <true yes> }
                 },
-                judge => { eval-function => sub (Str:D $poet1, Str:D $poet2, Str:D $poet3) { $poet3.defined && $poet3 ?? $poet3 !! $poet2 } };
+                judge => { eval-function => sub (Str:D $poet1, Str:D $poet2, $poet3) { $poet3.defined && $poet3 ?? $poet3 !! $poet2 } };
 
-        ok LLM::Graph.new(%rules);
+        ## 1
+        ok LLM::Graph.new(%rules, :$async);
 
-        my $g = LLM::Graph.new(%rules);
-
+        ## 2
+        my $g = LLM::Graph.new(%rules, :$async);
         ok $g();
 
+        ## 3
         is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['out1', 'out2', 'NONE', 'out2'];
 
+        ## 4
         $g.clear();
-
         ok $g.eval(:with-russian);
 
+        ## 5
         is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['out1', 'out2', 'out3', 'out3'];
 
-}, 'test function';
+}, 'Test function';
+
+
+#==========================================================
+# Arguments propagation
+#==========================================================
+
+subtest {
+        my %rules = poet2 => { eval-function => sub ($_ = Whatever) { $_.defined ?? $_ !! 'out2'} };
+
+        my $g = LLM::Graph.new(%rules, :$async);
+
+        ## 1
+        ok $g.eval();
+
+        ## 2
+        is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet2>, 'out2';
+}, 'Arguments propagation 1';
+
+subtest {
+
+        my %rules =
+                poet1 => { eval-function => {'out1'} },
+                poet2 => { eval-function => sub ($_ = Whatever) { $_.defined ?? $_ !! 'out2'} },
+                poet3 => {
+                        eval-function => sub ($poet1, $title = Whatever) { $title.defined ?? "$title : $poet1" !! "Whatever : $poet1"},
+                },
+                judge => { eval-function => sub (Str:D $poet1, Str:D $poet2, Str:D $poet3) { $poet3 } };
+
+        my $g = LLM::Graph.new(%rules, :$async);
+
+        ## 1
+        ok $g.eval();
+
+        ## 2
+        is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['out1', 'out2', 'Whatever : out1', 'Whatever : out1'];
+
+        ## 3
+        $g.clear();
+        ok $g.eval(title => 'title 3');
+
+        ## 4
+        say $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>;
+        is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['out1', 'out2', 'title 3 : out1', 'title 3 : out1'];
+
+        ## 5
+        $g.clear();
+        ok $g.eval({'$_' => 'proper2', title => 'title 3'});
+
+        ## 6
+        say $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>;
+        is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 poet3 judge>, ['out1', 'proper2', 'title 3 : out1', 'title 3 : out1'];
+
+}, 'Arguments propagation 2';
 
 done-testing;
