@@ -160,7 +160,7 @@ subtest {
 # Node arguments propagation
 #==========================================================
 
-#subtest {
+subtest {
         my %rules =
                 poet1 => { eval-function => {'out1'} },
                 poet2 => { eval-function => {'out2'} },
@@ -183,6 +183,6 @@ subtest {
         say $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 judge>;
         is $g.nodes.nodemap({ $_<result> // 'NONE' })<poet1 poet2 judge>, ['mine1', 'mine2', 'mine1 : mine2'];
 
-#}, 'Node arguments propagation 1';
+}, 'Node arguments propagation 1';
 
 done-testing;
