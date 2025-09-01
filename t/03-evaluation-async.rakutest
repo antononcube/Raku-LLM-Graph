@@ -6,6 +6,8 @@ use LLM::Graph;
 use Graph;
 use LLM::Functions;
 
+plan *;
+
 subtest {
     my %rules =
             poet1 => {
