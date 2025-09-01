@@ -211,7 +211,7 @@ class LLM::Graph
         %testArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
 
         # Add named args
-        my %args = %funcArgs.clone , %named-args , {'$_' => $pos-arg};
+        my %args = %funcArgs.clone , %named-args , {'$_' => $pos-arg // '(Any)'};
         my %allArgs = merge-hash(%args , %testArgs, :positional-append);
 
         # Make edges
@@ -249,14 +249,31 @@ class LLM::Graph
         my %namedArgs;
         my %namedSlurpyArgs;
         for @args -> %rec {
-            if !%rec<named> { @posArgs[%rec<position>] = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} // %rec<default> }
+
+            # Positional argument handling
+            if !%rec<named> {
+                @posArgs[%rec<position>] = do given %rec<name> {
+                    when %rec<name> ∈ <$_ @_ %_> {
+                        %inputs{%rec<name>} // %rec<default>
+                     }
+                    default {
+                        %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} // %rec<default>
+                    }
+                }
+
+                if !@posArgs[%rec<position>].defined && !%rec<default>.defined && !%rec<default>.isa(Whatever) {
+                    # How many times the pos-arg is going to be used?
+                    @posArgs[%rec<position>] = $pos-arg
+                }
+            }
+
+            # Named argument handling
             if %rec<named> {
                 %namedArgs{%rec<name>} = %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} // %rec<default>;
                 %namedSlurpyArgs{%rec<name>} = %rec<slurpy>;
             }
         }
 
-        @posArgs .= map({ $_.defined || $_.isa(Whatever) ?? $_ !! $pos-arg });
         %namedArgs .= map({ %namedSlurpyArgs{$_.key} ?? $_ !! ($_.key.subst(/ ^ <[$%@]> /) => $_.value) });
 
         # Passing positional arguments with non-default values is complicated.
@@ -333,9 +350,18 @@ class LLM::Graph
         return $result;
     }
 
-    multi method eval(%named-args = %(), $nodes = Whatever) {
+    sub is-nodes-spec($x) { $x.isa(Whatever) || $x ~~ Str:D || $x ~~ (Array:D | List:D | Seq:D) && $x.all ~~ Str:D }
 
-        my $pos-arg = %named-args<$_> // '';
+    multi method eval($arg where $arg !~~ Pair:D, $nodes where is-nodes-spec($nodes) = Whatever) {
+        return self.eval({'$_' => $arg}, :$nodes);
+    }
+
+    multi method eval(*%named-args) {
+        return self.eval(%named-args, nodes => Whatever);
+    }
+
+    multi method eval(%named-args!, $nodes where is-nodes-spec($nodes) = Whatever) {
+        my $pos-arg = %named-args<$_>;
 
         # Make the graph if not made already
         # Maybe it should be always created.
@@ -388,14 +414,6 @@ class LLM::Graph
         # %!nodes .= map({ if $_.value<wrapper> { $_.value<eval-function>.unwrap($_.value<wrapper>) }; $_ });
 
         return self;
-    }
-
-    multi method eval($arg, $nodes = Whatever) {
-        return self.eval({'$_' => $arg}, :$nodes);
-    }
-
-    multi method eval(*%named-args) {
-        return self.eval(%named-args.Hash, nodes => Whatever);
     }
 
     submethod CALL-ME(|c) { c.list.elems == 0 ?? self.eval(c.hash) !! self.eval(|c); }
