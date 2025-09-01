@@ -383,12 +383,16 @@ class LLM::Graph
 
     sub is-nodes-spec($x) { $x.isa(Whatever) || $x ~~ Str:D || $x ~~ (Array:D | List:D | Seq:D) && $x.all ~~ Str:D }
 
-    multi method eval($arg where $arg !~~ Pair:D, $nodes where is-nodes-spec($nodes) = Whatever) {
+    multi method eval($arg! where $arg !~~ Pair:D, $nodes where is-nodes-spec($nodes) = Whatever) {
         return self.eval({'$_' => $arg}, :$nodes);
     }
 
     multi method eval(*%named-args) {
-        return self.eval(%named-args, nodes => Whatever);
+        return self.eval(%named-args.Hash, nodes => Whatever);
+    }
+
+    multi method eval($dummy, $nodes where !is-nodes-spec($nodes)) {
+        die 'The second argument of the method eval is expected to be a node name, a list of node names, or Whatever.';
     }
 
     multi method eval(%named-args!, $nodes where is-nodes-spec($nodes) = Whatever) {
