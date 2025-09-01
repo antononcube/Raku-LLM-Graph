@@ -38,11 +38,12 @@ Winter’s breath is still.
 END
 
 #say $g.eval(:$poet1, :$poet2).nodes<judge>;
+$g.clear();
 isa-ok $g.eval(:$poet1).nodes<judge><result>, Str:D;
 #say $g.nodes<judge><result>;
 
 ## 4
-say $g.nodes<poet1, poet2>.map(*<result>);
-is $g.nodes<poet1, poet2>.map(*<result>).all ~~ Str:D, True;
+#say $g.nodes<poet1 poet2>.map(*<result>);
+is $g.nodes<poet1 poet2>.map(*<result>).all ~~ Str:D, True;
 
 done-testing;
