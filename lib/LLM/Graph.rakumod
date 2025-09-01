@@ -13,6 +13,7 @@ class LLM::Graph
     has $.graph = Whatever;
     has $.llm-evaluator is rw = Whatever;
     has Bool $.async is rw = True;
+    has Bool $.progress-reporting is rw = False;
 
     constant @ALLOWED_KEYS = <eval-function llm-function listable-llm-function input test-function test-function-input>;
     constant %ALLOWED = @ALLOWED_KEYS.map({ $_ => True }).hash;
@@ -23,7 +24,8 @@ class LLM::Graph
     submethod BUILD(:%!nodes = %(),
                     :$!graph = Whatever,
                     :$!llm-evaluator = Whatever,
-                    Bool:D :$!async = True
+                    Bool:D :$!async = True,
+                    Bool:D :$!progress-reporting = False
                     ) {
         if $!llm-evaluator.isa(Whatever) {
             $!llm-evaluator = llm-evaluator(llm-configuration(Whatever));
@@ -31,12 +33,20 @@ class LLM::Graph
     }
 
 
-    multi method new(%nodes, :e(:$llm-evaluator) = Whatever, Bool:D :a(:$async) = True) {
-        self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async);
+    multi method new(%nodes,
+                     :e(:$llm-evaluator) = Whatever,
+                     Bool:D :a(:$async) = True,
+                     Bool:D :progress(:$progress-reporting) = False
+                     ) {
+        self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async, :$progress-reporting);
     }
 
-    multi method new(:%nodes!, :e(:$llm-evaluator) = Whatever, Bool:D :a(:$async) = True) {
-        self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async);
+    multi method new(:%nodes!,
+                     :e(:$llm-evaluator) = Whatever,
+                     Bool:D :a(:$async) = True,
+                     Bool:D :progress(:$progress-reporting) = False
+                     ) {
+        self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async, :$progress-reporting);
     }
 
     #======================================================
@@ -346,6 +356,10 @@ class LLM::Graph
         # Wait for all promises to finish
         if @inputPromises {
             my $allDone = Promise.allof(@inputPromises);
+
+            note "Awaiting for the results of {%inputs.grep({ $_.value ~~ Promise:D })».key}"
+            if $!progress-reporting;
+
             await($allDone);
             %inputs .= map({ $_.value ~~ Promise:D ?? ($_.key => $_.value.result) !! $_ });
         }
@@ -356,6 +370,9 @@ class LLM::Graph
 
         # Register result
         if self.graph.vertex-out-degree($node) == 0 && $result ~~ Promise:D {
+
+            note "Awaiting for the final node ⎡$node⎦" if $!progress-reporting;
+
             await($result);
             $result = $result.result;
         }
@@ -437,6 +454,10 @@ class LLM::Graph
 #| C<%nodes> -- LLM graph node specs.
 #| C<:e(:$llm-evaluator)> -- LLM evaluator spec.
 #| C<:a(:$async)> -- Should the evaluations of LLM computation specs be asynchronous or not.
-multi sub llm-graph(%nodes, :e(:$llm-evalutor) = Whatever, Bool:D :a(:$async) = True) is export {
-    LLM::Graph.new(:%nodes, :$llm-evalutor, :$async)
+#| C<:progress(:$progress-reporting)> -- Should evaluation progress be reported or not.
+multi sub llm-graph(%nodes,
+                    :e(:$llm-evaluator) = Whatever,
+                    Bool:D :a(:$async) = True,
+                    Bool:D :progress(:$progress-reporting) = False) is export {
+    LLM::Graph.new(:%nodes, :$llm-evaluator, :$async, :$progress-reporting)
 }
