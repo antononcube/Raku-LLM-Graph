@@ -294,7 +294,11 @@ class LLM::Graph
 
         my %inputs;
         if %!nodes{$node}<test-function-input> {
-            %inputs = %!nodes{$node}<test-function-input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, :%named-args) })
+            # Using
+            #   %named-args{$_} // self.eval-node($_, :$pos-arg, :%named-args)
+            # wont let to be registered the results of nodes that are parents
+            # to test functions only.
+            %inputs = %!nodes{$node}<test-function-input>.map({ $_ => self.eval-node($_, :$pos-arg, :%named-args) })
         }
 
         # Node function info
@@ -311,6 +315,13 @@ class LLM::Graph
 
         return $pos-arg if $node eq '$_';
 
+        # If node name with a given value in the inputs,
+        # then register that value as a result and leave.
+        if (%!nodes{$node}:exists) && (%named-args{$node}:exists) {
+            %!nodes{$node}<result> = %named-args{$node};
+            return %named-args{$node};
+        }
+
         return %named-args{$node} with %named-args{$node};
 
         return %!nodes{$node}<result> with %!nodes{$node}<result>;
@@ -323,7 +334,10 @@ class LLM::Graph
 
         my %inputs;
         if %!nodes{$node}<input> {
-            %inputs = %!nodes{$node}<input>.map({ $_ => %named-args{$_} // self.eval-node($_, :$pos-arg, :%named-args) })
+            # Using
+            #   %named-args{$_} // self.eval-node($_, :$pos-arg, :%named-args)
+            # is elegant but it does not register the node result. (See above.)
+            %inputs = %!nodes{$node}<input>.map({ $_ => self.eval-node($_, :$pos-arg, :%named-args) })
         }
 
         # Select the inputs that are promises
