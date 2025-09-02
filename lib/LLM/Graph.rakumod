@@ -388,7 +388,7 @@ class LLM::Graph
         return self.eval({'$_' => $arg}, :$nodes);
     }
 
-    multi method eval($dummy, $nodes where !is-nodes-spec($nodes)) {
+    multi method eval($dummy, $nodes where !is-nodes-spec($nodes), *%stray-args) {
         die 'The second argument of the method eval is expected to be a node name, a list of node names, or Whatever.';
     }
 
