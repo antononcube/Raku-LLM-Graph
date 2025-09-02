@@ -245,6 +245,9 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
   - [X] DONE Asynchronous execution support
     - [X] DONE Inputs computed via promises
     - [X] DONE LLM-graph global ":async" option
+  - [ ] TODO Progress reporting
+    - [X] DONE For async
+    - [ ] TODO For non-async
   - [ ] TODO CLI interface that takes Raku or JSON specs of LLM-graphs
 - [ ] TODO Testing
   - [X] DONE LLM-graph initialization
