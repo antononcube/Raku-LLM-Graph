@@ -1,0 +1,63 @@
+use v6.d;
+use Test;
+
+#use lib <. lib>;
+use LLM::Graph;
+use Graph;
+use LLM::Functions;
+
+plan *;
+
+my $async = True;
+
+subtest {
+    my %rules =
+            poet1 => {
+                eval-sub => { 'out1' }
+            },
+            poet2 => {
+                eval-sub => { 'out2' },
+                test-sub => sub (Bool:D :$use-second = False) { $use-second }
+                },
+            judge => {
+                eval-sub => sub ($poet1, $poet2) { "$poet1 : $poet2" }
+            };
+
+    ## 1
+    ok LLM::Graph.new(%rules, :$async);
+
+    ## 2
+    my $g = LLM::Graph.new(%rules, :$async);
+    isa-ok $g.create-graph(:use-second).graph, Graph:D, 'got graph';
+
+    ## 3
+    $g.clear();
+    is $g.eval(:use-second).nodes<judge><result>, 'out1 : out2', 'got judgemet';
+
+    ## 4
+    is
+            ($g.nodes<poet1>.keys (&) <eval-function test-function listable-llm-function>).elems,
+            1,
+            'poet1 keys';
+
+    ## 5
+    is
+            ($g.nodes<poet1>.keys (&) <eval-sub test-sub listable-llm-sub>).elems,
+            0,
+            'poet1 non-keys';
+
+    ## 6
+    is
+            ($g.nodes<poet2>.keys (&) <eval-function test-function listable-llm-function>).elems,
+            2,
+            'poet2 keys';
+
+    ## 5
+    is
+            ($g.nodes<poet2>.keys (&) <eval-sub test-sub listable-llm-sub>).elems,
+            0,
+            'poet2 non-keys';
+
+}, 'Handle spec shortcuts (*-sub)';
+
+done-testing;
