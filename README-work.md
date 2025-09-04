@@ -83,6 +83,9 @@ LLM::Graph.new(...)(input)
 
 - Each node must be defined with only one of "eval-function", "llm-function", or "listable-llm-function".
 
+- The spec-synonyms "eval-sub", "llm-sub", "listable-llm-sub", and "test-sub" can be used instead of
+  "eval-function", "llm-function", "listable-llm-function", and "test-function", respectively.
+
 - The "test-function" specification makes a node evaluation conditional on the results from other nodes.
 
 - Possible "llm-function" specifications `prompt_i` include:
