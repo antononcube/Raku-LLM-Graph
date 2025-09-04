@@ -195,7 +195,23 @@ class LLM::Graph
                 }
 
                 when Map:D {
+                    # Handle "shortcut" specs
+                    my %rename =
+                            llm-sub => 'llm-function',
+                            eval-sub => 'eval-function',
+                            test-sub => 'test-function',
+                            listable-llm-sub => 'listable-llm-function';
+
+                    for %rename.kv -> $old, $new {
+                        if $_{$old}:exists {
+                            $_{$new} = $_{$old};
+                            $_{$old}:delete;
+                        }
+                    }
+
+                    # Determine spec type
                     my $spec-type = $_<eval-function>:exists ?? Callable !! LLM::Function;
+
                     %!nodes{$k} = merge-hash($_ , {:$spec-type})
                 }
             }
