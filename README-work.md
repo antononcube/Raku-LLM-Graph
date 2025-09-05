@@ -9,6 +9,9 @@
 Raku package used to efficiently schedule and combine multiple LLM generation steps.
 
 The package provides the class `LLM::Graph` with which computations are orchestrated.
+(A good "real-life" example is given in the blog post 
+["Agentic-AI for text summarization"](https://rakuforprediction.wordpress.com/2025/09/02/agentic-ai-for-text-summarization/),
+[AA2].)
 
 The package follows the design discussed in the video
 ["Live CEOing Ep 886: Design Review of LLMGraph"](https://www.youtube.com/watch?v=ewU83vHwN8Y), [WRIv1],
@@ -232,13 +235,16 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
   - [X] DONE Asynchronous execution support
     - [X] DONE Inputs computed via promises
     - [X] DONE LLM-graph global ":async" option
+  - [ ] TODO Handling broken promises in async execution 
   - [ ] TODO Progress reporting
     - [X] DONE For async
     - [ ] TODO For non-async
   - [ ] TODO CLI interface that takes Raku or JSON specs of LLM-graphs
-- [ ] TODO Testing
+- [X] DONE Testing
   - [X] DONE LLM-graph initialization
   - [X] DONE Simple evaluations
+  - [X] DONE Argument propagation
+  - [X] DONE Spec synonyms
 - [ ] TODO Documentation
   - [X] DONE Useful README
   - [X] DONE [Best poet notebook](./docs/Best-poet.ipynb).
@@ -254,6 +260,11 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
 
 [AA1] Anton Antonov,
 ["Parameterized Literate Programming"](https://rakuforprediction.wordpress.com/2025/06/21/parameterized-literate-programming/),
+(2025),
+[RakuForPrediction at WordPress](https://rakuforprediction.wordpress.com).
+
+[AA2] Anton Antonov,
+["Agentic-AI for text summarization"](https://rakuforprediction.wordpress.com/2025/09/02/agentic-ai-for-text-summarization/),
 (2025),
 [RakuForPrediction at WordPress](https://rakuforprediction.wordpress.com).
 
