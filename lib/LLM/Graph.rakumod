@@ -413,6 +413,14 @@ class LLM::Graph
         my %named-args = merge-hash(%stray-args, %args);
         my $pos-arg = %named-args<$_>;
 
+        # Test functions that depend nodes that depend on the arguments
+        # and have assigned values have to be cleared.
+        # Clearing all nodes with test functions for now.
+
+        # Nodes with test functions
+        my @tf-nodes = %!nodes.grep({ $_.value<test-function>:exists })».key;
+        self.clear(@tf-nodes);
+
         # Make the graph if not made already
         # Maybe it should be always created.
         if $!graph.isa(Whatever) { self.create-graph($pos-arg, %named-args) }
