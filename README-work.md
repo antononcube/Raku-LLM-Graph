@@ -239,6 +239,9 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
   - [ ] TODO Progress reporting
     - [X] DONE For async
     - [ ] TODO For non-async
+  - [ ] TODO Timed execution / promises 
+  - [ ] TODO Listable LLM function execution
+    - I.e. execute the same LLM function over a list of arguments.
   - [ ] TODO CLI interface that takes Raku or JSON specs of LLM-graphs
 - [X] DONE Testing
   - [X] DONE LLM-graph initialization
@@ -250,6 +253,7 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
   - [X] DONE [Best poet notebook](./docs/Best-poet.ipynb).
   - [X] DONE [Comprehensive text summary notebook](./docs/Summarize-large-text.ipynb).
   - [X] DONE [Visual dictionary](./docs/Graph-plots-interpretation-guide.ipynb)
+  - [X] DONE [Robust Grammar+LLM patterns](https://raku-advent.blog/2025/12/06/day-6-robust-code-generation-combining-grammars-and-llms/), [AA3] 
   - [ ] TODO Demo video
 
 -----
@@ -267,6 +271,11 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
 ["Agentic-AI for text summarization"](https://rakuforprediction.wordpress.com/2025/09/02/agentic-ai-for-text-summarization/),
 (2025),
 [RakuForPrediction at WordPress](https://rakuforprediction.wordpress.com).
+
+[AA3] Anton Antonov,
+["Day 6 – Robust code generation combining grammars and LLMs"](https://raku-advent.blog/2025/12/06/day-6-robust-code-generation-combining-grammars-and-llms/),
+(2025),
+[Raku Advent Calendar](https://raku-advent.blog).
 
 ### Functions, packages
 
@@ -293,6 +302,11 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
 
 [AAn1] Anton Antonov,
 ["LLM comprehensive summary template for large texts"](https://community.wolfram.com/groups/-/m/t/3448842),
+(2025),
+[Wolfram Community](https://community.wolfram.com).
+
+[AAn2] Anton Antonov,
+["Robust code generation combining grammars and LLMs"](https://community.wolfram.com/groups/-/m/t/3588794),
 (2025),
 [Wolfram Community](https://community.wolfram.com).
 

@@ -9,7 +9,7 @@
 Raku package used to efficiently schedule and combine multiple LLM generation steps.
 
 The package provides the class `LLM::Graph` with which computations are orchestrated.
-(A good "real-life" example is given in the blog post
+(A good "real-life" example is given in the blog post 
 ["Agentic-AI for text summarization"](https://rakuforprediction.wordpress.com/2025/09/02/agentic-ai-for-text-summarization/),
 [AA2].)
 
@@ -86,10 +86,10 @@ LLM::Graph.new(...)(input)
 
 - Each node must be defined with only one of "eval-function", "llm-function", or "listable-llm-function".
 
-- The "test-function" specification makes a node evaluation conditional on the results from other nodes.
-
 - The spec-synonyms "eval-sub", "llm-sub", "listable-llm-sub", and "test-sub" can be used instead of
   "eval-function", "llm-function", "listable-llm-function", and "test-function", respectively.
+
+- The "test-function" specification makes a node evaluation conditional on the results from other nodes.
 
 - Possible "llm-function" specifications `prompt_i` include:
 
@@ -153,8 +153,7 @@ Calculation with special parameters (topic and style) for the 3rd poet:
 $gBestPoem(topic => 'hockey', style => 'limerick');
 ```
 ```
-# >>>> Promise Str
-# >>>> Promise Str
+# LLM::Graph(size => 4, nodes => judge, poet1, poet2, poet3)
 ```
 
 **Remark** Instances of `LLM::Graph` are callables. Instead of `$gBestPoem(...)`, `$gBestPoem.eval(...)` can be used.
@@ -174,13 +173,17 @@ The result by the terminal node("judge"):
 say $gBestPoem.nodes<judge>;
 ```
 ```
-# {eval-function => sub { }, input => [poet2 poet1 poet3], result => Here is Poem3, which I think is the best among these:
+# {eval-function => sub { }, input => [poet3 poet2 poet1], result => I think Poem1 is the best among these. Here's the composition:
 # 
-# There once was a game on the ice,  
-# Where players would skate fast and slice.  
-# With sticks poised to strike,  
-# They'd shoot pucks alike,  
-# In hockey, the thrill’s worth the price!, spec-type => (Routine), test-function-input => [], wrapper => Routine::WrapHandle.new}
+# Golden rays embrace the sky,  
+# Whispers of the warm July,  
+# Fields in bloom, a sweet perfume,  
+# Summer’s song in full costume.  
+# 
+# Laughter dances on the breeze,  
+# Sunlight sifted through the trees,  
+# Moments draped in endless light,  
+# Daydreams stretching into night., spec-type => (Routine), test-function-input => [], wrapper => Routine::WrapHandle.new}
 ```
 
 ### Further examples
@@ -251,10 +254,13 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
   - [X] DONE Asynchronous execution support
     - [X] DONE Inputs computed via promises
     - [X] DONE LLM-graph global ":async" option
-  - [ ] TODO Handling broken promises in async execution
+  - [ ] TODO Handling broken promises in async execution 
   - [ ] TODO Progress reporting
     - [X] DONE For async
     - [ ] TODO For non-async
+  - [ ] TODO Timed execution / promises 
+  - [ ] TODO Listable LLM function execution
+    - I.e. execute the same LLM function over a list of arguments.
   - [ ] TODO CLI interface that takes Raku or JSON specs of LLM-graphs
 - [X] DONE Testing
   - [X] DONE LLM-graph initialization
@@ -266,6 +272,7 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
   - [X] DONE [Best poet notebook](./docs/Best-poet.ipynb).
   - [X] DONE [Comprehensive text summary notebook](./docs/Summarize-large-text.ipynb).
   - [X] DONE [Visual dictionary](./docs/Graph-plots-interpretation-guide.ipynb)
+  - [X] DONE [Robust Grammar+LLM patterns](https://raku-advent.blog/2025/12/06/day-6-robust-code-generation-combining-grammars-and-llms/), [AA3] 
   - [ ] TODO Demo video
 
 -----
@@ -283,6 +290,11 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
 ["Agentic-AI for text summarization"](https://rakuforprediction.wordpress.com/2025/09/02/agentic-ai-for-text-summarization/),
 (2025),
 [RakuForPrediction at WordPress](https://rakuforprediction.wordpress.com).
+
+[AA3] Anton Antonov,
+["Day 6 – Robust code generation combining grammars and LLMs"](https://raku-advent.blog/2025/12/06/day-6-robust-code-generation-combining-grammars-and-llms/),
+(2025),
+[Raku Advent Calendar](https://raku-advent.blog).
 
 ### Functions, packages
 
@@ -309,6 +321,11 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
 
 [AAn1] Anton Antonov,
 ["LLM comprehensive summary template for large texts"](https://community.wolfram.com/groups/-/m/t/3448842),
+(2025),
+[Wolfram Community](https://community.wolfram.com).
+
+[AAn2] Anton Antonov,
+["Robust code generation combining grammars and LLMs"](https://community.wolfram.com/groups/-/m/t/3588794),
 (2025),
 [Wolfram Community](https://community.wolfram.com).
 
