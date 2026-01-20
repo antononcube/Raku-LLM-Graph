@@ -158,11 +158,11 @@ class LLM::Graph
         for %!nodes.kv -> $k, $node {
             given $node {
                 when ($_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D) && self.async {
-                    %!nodes{$k} = %( eval-function => { start llm-synthesize($node) }, spec-type => Str )
+                    %!nodes{$k} = %( eval-function => { start llm-synthesize($node, :$!llm-evaluator) }, spec-type => Str )
                 }
 
                 when ($_ ~~ Str:D || $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D) && !self.async {
-                    %!nodes{$k} = %( llm-function => llm-function($_), spec-type => Str )
+                    %!nodes{$k} = %( llm-function => llm-function($_, :$!llm-evaluator), spec-type => Str )
                 }
 
                 # &llm-function returns functors by default since "LLM::Functions:ver<0.3.3>"
