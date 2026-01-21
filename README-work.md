@@ -9,7 +9,7 @@
 Raku package used to efficiently schedule and combine multiple LLM generation steps.
 
 The package provides the class `LLM::Graph` with which computations are orchestrated.
-(A good "real-life" example is given in the blog post 
+(A good "real-life" example is given in the blog post
 ["Agentic-AI for text summarization"](https://rakuforprediction.wordpress.com/2025/09/02/agentic-ai-for-text-summarization/),
 [AA2].)
 
@@ -63,7 +63,7 @@ LLM::Graph.new(...)(input)
 
 - Using `LLM::Graph` requires (LLM) service authentication and internet connectivity.
   - Authentication and internet are required if all graph nodes are non-LLM computation specs.
-  
+
 - Possible values of the node function spec `fun_i` are:
 
 |                         |                                                      |
@@ -102,7 +102,7 @@ LLM::Graph.new(...)(input)
 | `llm-function(...)`                 | an `LLM::Function` object |
 
 
-- Any "node_i" result can be provided in input as a named argument. 
+- Any "node_i" result can be provided in input as a named argument.
   `input` can have one positional argument and multiple named arguments.
 
 - `LLM::Graph` objects have the attribute `llm-evaluator` that is used as a default (or fallback)
@@ -129,16 +129,16 @@ my %rules =
         poet1 => "Write a short poem about summer.",
         poet2 => "Write a haiku about winter.",
         poet3 => sub ($topic, $style) {
-            "Write a poem about $topic in the $style style."
+          "Write a poem about $topic in the $style style."
         },
         judge => sub ($poet1, $poet2, $poet3) {
-            [
-                "Choose the composition you think is best among these:\n\n",
-                "1) Poem1: $poet1",
-                "2) Poem2: $poet2",
-                "3) Poem3: $poet3",
-                "and copy it:"
-            ].join("\n\n")
+          [
+            "Choose the composition you think is best among these:\n\n",
+            "1) Poem1: $poet1",
+            "2) Poem2: $poet2",
+            "3) Poem3: $poet3",
+            "and copy it:"
+          ].join("\n\n")
         };
 
 my $gBestPoem = LLM::Graph.new(%rules);
@@ -185,7 +185,7 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
 ### LLM functors introduction
 
 - Since the very beginning, the functions produced by "LLM::Functions" were actually blocks (`Block:D`).
-  It was in my TODO list for a long time instead of blocks to produce functors (function objects). 
+  It was in my TODO list for a long time instead of blocks to produce functors (function objects).
   For "LLM::Graph" that is/was necessary in order to make the node-specs processing more adequate.
   - So, `llm-function` produces functors (`LLM::Function` objects) by default now.
   - The option "type" can be used to get blocks.
@@ -193,7 +193,7 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
 ### No need for topological sorting
 
 - I thought that I should use the graph algorithms for topological sorting in order to navigate node dependencies
-  during evaluation. 
+  during evaluation.
 - Turned out, that is not necessary -- simple recursion is sufficient.
   - From the nodes specs, a directed graph (a `Graph` object) is made.
   - `Graph`'s method `reverse` is used to get the directed computational dependency graph.
@@ -235,11 +235,19 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
   - [X] DONE Asynchronous execution support
     - [X] DONE Inputs computed via promises
     - [X] DONE LLM-graph global ":async" option
-  - [ ] TODO Handling broken promises in async execution 
+  - [ ] TODO Cyclic graphs iterations
+    - [ ] TODO Max iterations specs
+    - [ ] TODO Iterations count tracking per node
+    - [ ] TODO Accumulation of iteration results per node
+    - [ ] TODO Max-iterations-reached value or method
+      - For example:
+        - A string value
+        - A function to be applied to the accumulated results
+  - [ ] TODO Handling broken promises in async execution
   - [ ] TODO Progress reporting
     - [X] DONE For async
     - [ ] TODO For non-async
-  - [ ] TODO Timed execution / promises 
+  - [ ] TODO Timed execution / promises
   - [ ] TODO Listable LLM function execution
     - I.e. execute the same LLM function over a list of arguments.
   - [ ] TODO CLI interface that takes Raku or JSON specs of LLM-graphs
@@ -253,7 +261,7 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
   - [X] DONE [Best poet notebook](./docs/Best-poet.ipynb).
   - [X] DONE [Comprehensive text summary notebook](./docs/Summarize-large-text.ipynb).
   - [X] DONE [Visual dictionary](./docs/Graph-plots-interpretation-guide.ipynb)
-  - [X] DONE [Robust Grammar+LLM patterns](https://raku-advent.blog/2025/12/06/day-6-robust-code-generation-combining-grammars-and-llms/), [AA3] 
+  - [X] DONE [Robust Grammar+LLM patterns](https://raku-advent.blog/2025/12/06/day-6-robust-code-generation-combining-grammars-and-llms/), [AA3]
   - [ ] TODO Demo video
 
 -----
@@ -279,23 +287,23 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
 
 ### Functions, packages
 
-[AAp1] Anton Antonov, 
+[AAp1] Anton Antonov,
 [LLM::Functions, Raku package](https://github.com/antononcube/Raku-LLM-Functions),
 (2023-2025),
 [GitHub/antononcube](https://github.com/antononcube).
 
-[AAp2] Anton Antonov, 
+[AAp2] Anton Antonov,
 [LLM::Prompts, Raku package](https://github.com/antononcube/Raku-LLM-Prompts),
 (2023-2025),
 [GitHub/antononcube](https://github.com/antononcube).
 
-[AAp3] Anton Antonov, 
+[AAp3] Anton Antonov,
 [Graph, Raku package](https://github.com/antononcube/Raku-LLM-Graph),
 (2024-2025),
 [GitHub/antononcube](https://github.com/antononcube).
 
-[WRIf1] Wolfram Research (2025), 
-[LLMGraph](https://reference.wolfram.com/language/ref/LLMGraph.html), 
+[WRIf1] Wolfram Research (2025),
+[LLMGraph](https://reference.wolfram.com/language/ref/LLMGraph.html),
 [Wolfram Language function](https://reference.wolfram.com/language).
 
 ### Notebooks

@@ -254,6 +254,14 @@ The following notebook gives visual dictionaries for the interpretation of LLM-g
   - [X] DONE Asynchronous execution support
     - [X] DONE Inputs computed via promises
     - [X] DONE LLM-graph global ":async" option
+  - [ ] TODO Cyclic graphs iterations
+    - [ ] TODO Max iterations specs
+    - [ ] TODO Iterations count tracking per node
+    - [ ] TODO Accumulation of iteration results per node
+    - [ ] TODO Max-iterations-reached value or method
+      - For example:
+        - A string value
+        - A function to be applied to the accumulated results
   - [ ] TODO Handling broken promises in async execution 
   - [ ] TODO Progress reporting
     - [X] DONE For async
