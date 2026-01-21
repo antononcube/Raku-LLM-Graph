@@ -13,9 +13,10 @@ class LLM::Graph
     has $.graph = Whatever;
     has $.llm-evaluator is rw = Whatever;
     has Bool $.async is rw = True;
+    has UInt $.max-iterations is rw = 5;
     has Bool $.progress-reporting is rw = False;
 
-    constant @ALLOWED_KEYS = <eval-function llm-function listable-llm-function input test-function test-function-input>;
+    constant @ALLOWED_KEYS = <eval-function llm-function listable-llm-function input test-function test-function-input max-iterations max-iterations-value>;
     constant %ALLOWED = @ALLOWED_KEYS.map({ $_ => True }).hash;
 
     #======================================================
@@ -25,7 +26,8 @@ class LLM::Graph
                     :$!graph = Whatever,
                     :$!llm-evaluator = Whatever,
                     Bool:D :$!async = True,
-                    Bool:D :$!progress-reporting = False
+                    UInt:D :$!max-iterations = 5,
+                    Bool:D :$!progress-reporting = False,
                     ) {
         if $!llm-evaluator.isa(Whatever) {
             $!llm-evaluator = llm-evaluator(llm-configuration(Whatever));
@@ -36,17 +38,19 @@ class LLM::Graph
     multi method new(%nodes,
                      :e(:$llm-evaluator) = Whatever,
                      Bool:D :a(:$async) = True,
-                     Bool:D :progress(:$progress-reporting) = False
+                     UInt:D :$max-iterations = 5,
+                     Bool:D :progress(:$progress-reporting) = False,
                      ) {
-        self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async, :$progress-reporting);
+        self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async, :$max-iterations, :$progress-reporting);
     }
 
     multi method new(:%nodes!,
                      :e(:$llm-evaluator) = Whatever,
                      Bool:D :a(:$async) = True,
-                     Bool:D :progress(:$progress-reporting) = False
+                     UInt:D :$max-iterations = 5,
+                     Bool:D :progress(:$progress-reporting) = False,
                      ) {
-        self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async, :$progress-reporting);
+        self.bless(:%nodes, graph => Whatever, :$llm-evaluator, :$async, :$max-iterations, :$progress-reporting);
     }
 
     #======================================================
@@ -83,6 +87,8 @@ class LLM::Graph
                 $_.value<input>:delete;
                 $_.value<test-function-result>:delete;
                 $_.value<test-function-input>:delete;
+                $_.value<iteration-count>:delete;
+                $_.value<iteration-results>:delete;
             };
             $_
         });
@@ -98,14 +104,16 @@ class LLM::Graph
         %!nodes
                 .grep({ $_.key ∈ @nodes })
                 .map({
-                    if $_.value ~~ Map:D {
-                        $_.value<result>:delete;
-                        $_.value<input>:delete;
-                        $_.value<test-function-result>:delete;
-                        $_.value<test-function-input>:delete;
-                    };
-                    $_
-                });
+            if $_.value ~~ Map:D {
+                $_.value<result>:delete;
+                $_.value<input>:delete;
+                $_.value<test-function-result>:delete;
+                $_.value<test-function-input>:delete;
+                $_.value<iteration-count>:delete;
+                $_.value<iteration-results>:delete;
+            };
+            $_
+        });
         $!graph = Whatever;
         return self;
     }
@@ -216,6 +224,9 @@ class LLM::Graph
                 }
             }
         }
+        for %!nodes.kv -> $k, $node {
+            %!nodes{$k}<max-iterations> //= $!max-iterations
+        }
         return self;
     }
 
@@ -242,20 +253,20 @@ class LLM::Graph
 
         # Make edges
         my @edges = (%allArgs.keys X %allArgs.keys).grep({ $_.head ne $_.tail }).map( -> ($k1, $k2) {
-                my $v2 = %allArgs{$k2};
-                if $k1 ∈ $v2 || $k1 ∈ $v2».subst(/ ^ <[$%@]> /) {
-                    my $weight = 2 * +((%testArgs{$k2}:exists) && ($k1 ∈ %testArgs{$k2} || $k1 ∈ %testArgs{$k2}».subst(/ ^ <[$%@]> /)));
-                    $weight += +((%funcArgs{$k2}:exists) && ($k1 ∈ %funcArgs{$k2} || $k1 ∈ %funcArgs{$k2}».subst(/ ^ <[$%@]> /)));
-                    %( from => $k1, to => $k2, :$weight )
-                }
-            });
+            my $v2 = %allArgs{$k2};
+            if $k1 ∈ $v2 || $k1 ∈ $v2».subst(/ ^ <[$%@]> /) {
+                my $weight = 2 * +((%testArgs{$k2}:exists) && ($k1 ∈ %testArgs{$k2} || $k1 ∈ %testArgs{$k2}».subst(/ ^ <[$%@]> /)));
+                $weight += +((%funcArgs{$k2}:exists) && ($k1 ∈ %funcArgs{$k2} || $k1 ∈ %funcArgs{$k2}».subst(/ ^ <[$%@]> /)));
+                %( from => $k1, to => $k2, :$weight )
+            }
+        });
 
         # Make graph
         $!graph = Graph.new(@edges):d;
 
         # Verify
-        die 'Cyclic prompt dependencies are not supported.'
-        unless $!graph.is-acyclic;
+        # die 'Cyclic prompt dependencies are not supported.'
+        # unless $!graph.is-acyclic;
 
         return self;
     }
@@ -281,7 +292,7 @@ class LLM::Graph
                 @posArgs[%rec<position>] = do given %rec<name> {
                     when %rec<name> ∈ <$_ @_ %_> {
                         %inputs{%rec<name>} // %rec<default>
-                     }
+                    }
                     default {
                         %inputs{%rec<name>.subst(/ ^ <[$%@]> /)} // %rec<default>
                     }
@@ -350,7 +361,15 @@ class LLM::Graph
 
         return %named-args{$node} with %named-args{$node};
 
-        return %!nodes{$node}<result> with %!nodes{$node}<result>;
+        with %!nodes{$node}<result> {
+            # %!nodes{$node}<result> can be pre-construction assigned.
+            # If !nodes{$node}<max-iterations> == 0 then that value is returned;
+            # else the LLM-graph computations continue.
+            if (%!nodes{$node}<iteration-count> // 0) ≥ %!nodes{$node}<max-iterations> {
+                # For now, not handling the case when max-iterations-reached-handler callable is specified.
+                return %!nodes{$node}<max-iterations-value> // %!nodes{$node}<result>
+            }
+        }
 
         if !self.eval-test-node($node, :$pos-arg, :%named-args) {
             # Register non-result
@@ -387,12 +406,24 @@ class LLM::Graph
         # Register result
         if self.graph.vertex-out-degree($node) == 0 && $result ~~ Promise:D {
 
-            note "Awaiting for the final node ⎡$node⎦" if $!progress-reporting;
+            note "Awaiting for the final node ⎡$node⎦, iteration {%!nodes{$node}<iteration-count> // 0}"
+            if $!progress-reporting;
 
             await($result);
             $result = $result.result;
         }
+
+        # Result
         %!nodes{$node}<result> = $result;
+
+        # Count results
+        %!nodes{$node}<iteration-count> = (%!nodes{$node}<iteration-count> // 0) + 1;
+
+        # Accumulate results
+        without %!nodes{$node}<iteration-results> {
+            %!nodes{$node}<iteration-results> = []
+        }
+        %!nodes{$node}<iteration-results> .= push(%!nodes{$node}<result>);
 
         return $result;
     }
@@ -485,6 +516,7 @@ class LLM::Graph
 multi sub llm-graph(%nodes,
                     :e(:$llm-evaluator) = Whatever,
                     Bool:D :a(:$async) = True,
+                    UInt:D :$max-iterations = 5,
                     Bool:D :progress(:$progress-reporting) = False) is export {
-    LLM::Graph.new(:%nodes, :$llm-evaluator, :$async, :$progress-reporting)
+    LLM::Graph.new(:%nodes, :$llm-evaluator, :$async, :$max-iterations, :$progress-reporting)
 }
