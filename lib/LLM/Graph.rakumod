@@ -454,7 +454,7 @@ class LLM::Graph
             with $gr.adjacency-list{$k} {
                 if %v<test-function>:exists {
                     # See how the dependency graph is made -- test-function input edges have weight 2 or 3
-                    %!nodes{$k}<input> = $gr.adjacency-list{$k}.grep({ $_.value == 1 }).Hash.keys.Array;
+                    %!nodes{$k}<input> = $gr.adjacency-list{$k}.grep({ $_.value != 2 }).Hash.keys.Array;
                     %!nodes{$k}<test-function-input> = $gr.adjacency-list{$k}.grep({ $_.value >= 2 }).Hash.keys.Array;
                 } else {
                     %!nodes{$k}<input> = $gr.adjacency-list{$k}.keys.Array;
