@@ -237,7 +237,9 @@ class LLM::Graph
         %testArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
 
         # Add named args
-        my %args = %funcArgs.clone , %named-args , {'$_' => $pos-arg // '(Any)'};
+        ## If the graph input has hashmaps that have keys that also graph node names,
+        ## then the edges derivation can get confused about node dependencies.
+        my %args = %funcArgs.clone , %named-args.nodemap(*.raku) , {'$_' => $pos-arg // '(Any)'};
         my %allArgs = merge-hash(%args , %testArgs, :positional-append);
 
         # Make edges
