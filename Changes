@@ -1,9 +1,10 @@
 Revision history for "LLM::Graph"
 
 0.0.10 2026-01-22
-    - Fix: proper passing of parameters that are for the eval-function and test-function.
+    - Fix: Proper passing of parameters that are for the eval-function and test-function.
     - Fix: Preventing graph-node dependencies when input arguments have hashmaps.
-    - Added example using "custom LLM" in order to trace iterative generation refinements using LLM-graph.
+    - Added example using a "custom LLM" in order to trace iterative generation refinements using LLM-graph.
+        - It illustrates that cyclic LLM-graphs are not that needed.
 
 0.0.9 2026-01-20
     - Fix: proper passing of the default LLM-evaluator object.
