@@ -210,7 +210,11 @@ class LLM::Graph
                     }
 
                     # Determine spec type
-                    my $spec-type = $_<eval-function>:exists ?? Callable !! LLM::Function;
+                    my $spec-type = do if $_<spec-type>:exists {
+                        $_<spec-type>
+                    } else {
+                        $_<eval-function>:exists ?? () !! LLM::Function
+                    }
 
                     %!nodes{$k} = merge-hash($_ , {:$spec-type})
                 }
