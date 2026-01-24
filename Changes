@@ -12,7 +12,7 @@ Revision history for "LLM::Graph"
 
 0.0.8 2025-09-03
     - Handling of spec synonyms during normalization
-        - Like 'llm-sub', `eval-sub`, etc.
+        - Like "llm-sub", "eval-sub", etc.
 
 0.0.7 2025-09-02
     - Refactored / fixed slurpy named parameters handling
