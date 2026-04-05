@@ -87,7 +87,7 @@ subtest {
                 poet2 => { eval-function => {'out2'} },
                 poet3 => {
                         eval-function => {'out3'},
-                        test-function => sub ($with-russian) { $with-russian ~~ Bool:D && $with-russian || $with-russian.Str.lc ∈ <true yes> }
+                        test-function => sub ($with-russian) { $with-russian ~~ Bool:D && $with-russian ~~ Str:D || $with-russian.Str.lc ∈ <true yes> }
                 },
                 judge => { eval-function => sub (Str:D $poet1, Str:D $poet2, $poet3) { $poet3.defined && $poet3 ?? $poet3 !! $poet2 } };
 
