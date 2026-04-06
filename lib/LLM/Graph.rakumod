@@ -318,7 +318,7 @@ class LLM::Graph
 
         return $pos-arg if $node eq '$_';
 
-        return %named-args{$node} with %named-args{$node};
+        return %named-args{$node} if %named-args{$node}:exists;
 
         return True without %!nodes{$node}<test-function>;
 
@@ -354,7 +354,7 @@ class LLM::Graph
             return %named-args{$node};
         }
 
-        return %named-args{$node} with %named-args{$node};
+        return %named-args{$node} if %named-args{$node}:exists;
 
         return %!nodes{$node}<result> with %!nodes{$node}<result>;
 
