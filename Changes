@@ -1,5 +1,11 @@
 Revision history for "LLM::Graph"
 
+0.0.11 2026-04-05
+    - Bug fix: proper handling of user-specified arguments that are undefined.
+        - E.g. Whatever.
+    - Documentation:
+        - Summary of large text with Python notebook (for comparison)
+
 0.0.10 2026-01-22
     - Fix: Proper passing of parameters that are for the eval-function and test-function.
     - Fix: Preventing graph-node dependencies when input arguments have hashmaps.
