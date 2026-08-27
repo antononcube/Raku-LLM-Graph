@@ -457,13 +457,13 @@ class LLM::Graph
         # Expand the hashmap of each node with inputs
         for %!nodes.kv -> $k, %v {
             %!nodes{$k} = [|%v , input => [], test-function-input => [], result => Nil].Hash;
-            with $gr.adjacency-list{$k} {
+            with $gr.adjacency-map{$k} {
                 if %v<test-function>:exists {
                     # See how the dependency graph is made -- test-function input edges have weight 2 or 3
-                    %!nodes{$k}<input> = $gr.adjacency-list{$k}.grep({ $_.value != 2 }).Hash.keys.Array;
-                    %!nodes{$k}<test-function-input> = $gr.adjacency-list{$k}.grep({ $_.value >= 2 }).Hash.keys.Array;
+                    %!nodes{$k}<input> = $gr.adjacency-map{$k}.grep({ $_.value != 2 }).Hash.keys.Array;
+                    %!nodes{$k}<test-function-input> = $gr.adjacency-map{$k}.grep({ $_.value >= 2 }).Hash.keys.Array;
                 } else {
-                    %!nodes{$k}<input> = $gr.adjacency-list{$k}.keys.Array;
+                    %!nodes{$k}<input> = $gr.adjacency-map{$k}.keys.Array;
                 }
             }
         }
