@@ -28,9 +28,9 @@ say '-' x 100;
 
 my $gr = $g.graph.reverse;
 
-say $gr.adjacency-list;
-say $gr.adjacency-list<judge>;
-say $gr.adjacency-list<poet1>;
+say $gr.adjacency-map;
+say $gr.adjacency-map<judge>;
+say $gr.adjacency-map<poet1>;
 
 say '-' x 100;
 
