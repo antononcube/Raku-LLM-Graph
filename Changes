@@ -1,5 +1,8 @@
 Revision history for "LLM::Graph"
 
+0.1.0 2026-09-01
+    - Implemented threaded LLM-functions.
+
 0.0.12 2026-08-27
     - Refactor/fix: using the renamed Graph-class attribute adjacency-map.
 
