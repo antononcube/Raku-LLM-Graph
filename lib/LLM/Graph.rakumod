@@ -314,6 +314,45 @@ class LLM::Graph
         return $result;
     }
 
+    method eval-threaded-func(&func, %inputs, :$pos-arg = '') {
+
+        my @listInputs = %inputs.grep({
+            $_.value ~~ (Array:D | List:D | Seq:D)
+        }).Array;
+
+        my $usePosArg = @listInputs.elems == 0 && $pos-arg ~~ (Array:D | List:D | Seq:D);
+
+        die 'A listable LLM function requires exactly one list input.'
+        unless @listInputs.elems == 1 || $usePosArg;
+
+        my @items = $usePosArg ?? $pos-arg.List !! @listInputs.head.value.List;
+        my $inputName = $usePosArg ?? Nil !! @listInputs.head.key;
+
+        # Wrap every invocation in a Promise so both synchronous and asynchronous
+        # functions can be handled uniformly. Awaiting a Promise returned by the
+        # function avoids producing nested Promises.
+        my @jobs = @items.map(-> $item {
+            start {
+                my %itemInputs = %inputs.clone;
+                %itemInputs{$inputName} = $item unless $usePosArg;
+
+                my $result = self.eval-func(
+                        &func,
+                        %itemInputs,
+                        pos-arg => $usePosArg ?? $item !! $pos-arg);
+
+                $result ~~ Promise:D ?? await($result) !! $result
+            }
+        }).Array;
+
+        # Keep this node asynchronous so independent graph branches can continue
+        # while its element-wise evaluations are running.
+        return start {
+            await(Promise.allof(@jobs));
+            @jobs.map(*.result).Array
+        };
+    }
+
     method eval-test-node($node, :$pos-arg = '', :%named-args = %()) {
 
         return $pos-arg if $node eq '$_';
@@ -387,8 +426,16 @@ class LLM::Graph
         }
 
         # Node function info
-        my &func = %!nodes{$node}<eval-function> // %!nodes{$node}<llm-function> // %!nodes{$node}<listable-llm-function>;
-        my $result = self.eval-func(&func, %inputs, :$pos-arg);
+        my $result;
+        if %!nodes{$node}<listable-llm-function>:exists {
+            $result = self.eval-threaded-func(
+                    %!nodes{$node}<listable-llm-function>,
+                    %inputs,
+                    :$pos-arg);
+        } else {
+            my &func = %!nodes{$node}<eval-function> // %!nodes{$node}<llm-function>;
+            $result = self.eval-func(&func, %inputs, :$pos-arg);
+        }
 
         # Register result
         if self.graph.vertex-out-degree($node) == 0 && $result ~~ Promise:D {

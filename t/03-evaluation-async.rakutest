@@ -38,4 +38,51 @@ subtest {
 
 }, 'ad-hoc Promise functions (no-LLM)';
 
+subtest {
+    my %rules =
+            inputs => {
+                eval-function => { [1, 2, 3] }
+            },
+            doubled => {
+                listable-llm-function => sub ($inputs) {
+                    sleep 0.01 * (4 - $inputs);
+                    $inputs * 2
+                }
+            };
+
+    my $g = LLM::Graph.new(%rules):async;
+
+    is-deeply
+            $g.eval.nodes<doubled><result>,
+            [2, 4, 6],
+            'listable function evaluates a node list concurrently and preserves order';
+
+}, 'listable function with a node input';
+
+subtest {
+    my %rules =
+            transformed => {
+                listable-llm-function => sub ($value) {
+                    start {
+                        sleep 0.01 * (4 - $value);
+                        $value + 10
+                    }
+                }
+            },
+            result => {
+                eval-function => sub ($transformed) {
+                    $transformed
+                }
+            }
+            ;
+
+    my $g = LLM::Graph.new(%rules):async;
+
+    is-deeply
+            $g.eval([1, 2, 3]).nodes<result><result>,
+            [11, 12, 13],
+            'a list positional argument is threaded and nested Promises are resolved';
+
+}, 'listable function with a positional input';
+
 done-testing;
