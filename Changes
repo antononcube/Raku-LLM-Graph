@@ -1,5 +1,9 @@
 Revision history for "LLM::Graph"
 
+0.1.1 2026-09-03
+    - First version of the agent skill "raku-llm-graph-making" (placed in "./resources").
+    - Fix: Making sure arguments that are promises for node test-functions are awaited/evaluated.
+
 0.1.0 2026-09-01
     - Implemented threaded LLM-functions.
 
