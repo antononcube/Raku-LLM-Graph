@@ -6,8 +6,11 @@ use LLM::Graph;
 use Graph;
 use LLM::Functions;
 
+plan 2;
+
 my $conf = llm-configuration('ollama', model => 'gemma3:4b');
 
+## 1
 subtest {
         my %rules =
                 poet1 => {
@@ -40,7 +43,7 @@ subtest {
                 'All poets of promises';
 }, 'ad-hoc Promise functions';
 
-
+## 2
 subtest {
         my %rules =
                 poet1 => "Write a short poem about summer.",

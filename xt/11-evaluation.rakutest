@@ -6,6 +6,8 @@ use LLM::Graph;
 use Graph;
 use LLM::Functions;
 
+plan 4;
+
 my $conf = llm-configuration('ollama', model => 'gemma3:4b');
 
 my %rules =
