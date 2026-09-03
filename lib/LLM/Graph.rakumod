@@ -353,6 +353,7 @@ class LLM::Graph
         };
     }
 
+    # This method's code is almost the same as the code of eval-node -- should be refactored.
     method eval-test-node($node, :$pos-arg = '', :%named-args = %()) {
 
         return $pos-arg if $node eq '$_';
@@ -365,11 +366,21 @@ class LLM::Graph
 
         my %inputs;
         if %!nodes{$node}<test-function-input> {
-            # Using
-            #   %named-args{$_} // self.eval-node($_, :$pos-arg, :%named-args)
-            # wont let to be registered the results of nodes that are parents
-            # to test functions only.
             %inputs = %!nodes{$node}<test-function-input>.map({ $_ => self.eval-node($_, :$pos-arg, :%named-args) })
+        }
+
+        # Select the inputs that are promises
+        my @inputPromises = %inputs.grep({ $_.value ~~ Promise:D })».value;
+
+        # Wait for all promises to finish
+        if @inputPromises {
+            my $allDone = Promise.allof(@inputPromises);
+
+            note "Test function awaiting for the results of {%inputs.grep({ $_.value ~~ Promise:D })».key}"
+            if $!progress-reporting;
+
+            await($allDone);
+            %inputs .= map({ $_.value ~~ Promise:D ?? ($_.key => $_.value.result) !! $_ });
         }
 
         # Node function info
