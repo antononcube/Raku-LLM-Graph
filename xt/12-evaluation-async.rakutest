@@ -6,6 +6,8 @@ use LLM::Graph;
 use Graph;
 use LLM::Functions;
 
+my $conf = llm-configuration('ollama', model => 'gemma3:4b');
+
 subtest {
         my %rules =
                 poet1 => {
@@ -22,10 +24,10 @@ subtest {
                 };
 
         ## 1
-        ok LLM::Graph.new(%rules);
+        ok LLM::Graph.new(%rules, e => $conf);
 
         ## 2
-        my $g = LLM::Graph.new(%rules);
+        my $g = LLM::Graph.new(%rules, e => $conf);
         isa-ok $g.create-graph.graph, Graph:D, 'got graph';
 
         ## 3
@@ -51,10 +53,10 @@ subtest {
                 };
 
         ## 1
-        ok LLM::Graph.new(%rules, :async);
+        ok LLM::Graph.new(%rules, e => $conf, :async);
 
         ## 2
-        my $g = LLM::Graph.new(%rules, :async);
+        my $g = LLM::Graph.new(%rules, e => $conf, :async);
         isa-ok
                 $g.eval.nodes<judge><result>,
                 Str:D,

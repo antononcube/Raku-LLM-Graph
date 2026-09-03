@@ -4,6 +4,9 @@ use Test;
 # use lib <. lib>;
 use LLM::Graph;
 use Graph;
+use LLM::Functions;
+
+my $conf = llm-configuration('ollama', model => 'gemma3:4b');
 
 my %rules =
         poet1 => "write a short poem about summer",
@@ -12,7 +15,7 @@ my %rules =
         ;
 
 ## 1
-ok LLM::Graph.new(%rules, :!async);
+ok LLM::Graph.new(%rules, e => $conf, :!async);
 
 ## 2
 my $g = LLM::Graph.new(%rules, :!async);
