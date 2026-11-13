@@ -14,8 +14,9 @@ class LLM::Graph
     has $.llm-evaluator is rw = Whatever;
     has Bool $.async is rw = True;
     has Bool $.progress-reporting is rw = False;
+    has @.cycle-plans is rw = ();
 
-    constant @ALLOWED_KEYS = <eval-function llm-function listable-llm-function input test-function test-function-input>;
+    constant @ALLOWED_KEYS = <eval-function llm-function listable-llm-function input test-function test-function-input initial-value termination-function max-iterations spec-type wrapper result test-function-result initial-value-input termination-function-input iteration-count termination-reason>;
     constant %ALLOWED = @ALLOWED_KEYS.map({ $_ => True }).hash;
 
     #======================================================
@@ -83,6 +84,10 @@ class LLM::Graph
                 $_.value<input>:delete;
                 $_.value<test-function-result>:delete;
                 $_.value<test-function-input>:delete;
+                $_.value<initial-value-input>:delete;
+                $_.value<termination-function-input>:delete;
+                $_.value<iteration-count>:delete;
+                $_.value<termination-reason>:delete;
             };
             $_
         });
@@ -103,6 +108,10 @@ class LLM::Graph
                         $_.value<input>:delete;
                         $_.value<test-function-result>:delete;
                         $_.value<test-function-input>:delete;
+                        $_.value<initial-value-input>:delete;
+                        $_.value<termination-function-input>:delete;
+                        $_.value<iteration-count>:delete;
+                        $_.value<termination-reason>:delete;
                     };
                     $_
                 });
@@ -137,6 +146,22 @@ class LLM::Graph
                     @errors.push(
                             "Rule '$name' has invalid spec -- " ~
                             'node\'s test function must be a Callable:D object.')
+                }
+                if ($val<initial-value>:exists) && $val<initial-value> !~~ Callable:D {
+                    @errors.push(
+                            "Rule '$name' has invalid spec -- " ~
+                            'node\'s initial value must be a Callable:D object.')
+                }
+                if ($val<termination-function>:exists) && $val<termination-function> !~~ Callable:D {
+                    @errors.push(
+                            "Rule '$name' has invalid spec -- " ~
+                            'node\'s termination function must be a Callable:D object.')
+                }
+                if ($val<max-iterations>:exists) &&
+                        !($val<max-iterations> ~~ Int:D && $val<max-iterations> > 0) {
+                    @errors.push(
+                            "Rule '$name' has invalid spec -- " ~
+                            'node\'s max iterations must be a positive Int:D value.')
                 }
             }
             else {
@@ -232,6 +257,9 @@ class LLM::Graph
         # Make sure we have hashmaps
         self.normalize-nodes;
 
+        die self.node-spec-errors().join("\n")
+        unless self.has-valid-node-specs;
+
         # For each node get the input arguments
         my %funcArgs = %!nodes.map({ $_.key => $_.value<eval-function> // $_.value<llm-function> // $_.value<listable-llm-function> });
         %funcArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
@@ -240,18 +268,32 @@ class LLM::Graph
         my %testArgs = %!nodes.grep({ $_.value<test-function> }).map({ $_.key => $_.value<test-function> });
         %testArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
 
+        # Loop-control functions have their own dependency classes. 
+        # Initial values are evaluated once before a loop, and 
+        # termination functions are evaluated after each completed iteration.
+        my %initialArgs = %!nodes.grep({ $_.value<initial-value> }).map({ $_.key => $_.value<initial-value> });
+        %initialArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
+
+        my %terminationArgs = %!nodes.grep({ $_.value<termination-function> }).map({ $_.key => $_.value<termination-function> });
+        %terminationArgs .= map({ $_.key => sub-info($_.value)<parameters>.map(*<name>).List });
+
         # Add named args
         ## If the graph input has hashmaps that have keys that also graph node names,
         ## then the edges derivation can get confused about node dependencies.
-        my %args = %funcArgs.clone , %named-args.nodemap(*.raku) , {'$_' => $pos-arg // '(Any)'};
+        my %external-named-args = %named-args.grep({ !(%!nodes{$_ .key}:exists) }).Hash;
+        my %args = %funcArgs.clone , %external-named-args.nodemap(*.raku) , {'$_' => $pos-arg // '(Any)'};
         my %allArgs = merge-hash(%args , %testArgs, :positional-append);
+        %allArgs = merge-hash(%allArgs, %initialArgs, :positional-append);
+        %allArgs = merge-hash(%allArgs, %terminationArgs, :positional-append);
 
         # Make edges
-        my @edges = (%allArgs.keys X %allArgs.keys).grep({ $_.head ne $_.tail }).map( -> ($k1, $k2) {
+        my @edges = (%allArgs.keys X %allArgs.keys).map( -> ($k1, $k2) {
                 my $v2 = %allArgs{$k2};
                 if $k1 ∈ $v2 || $k1 ∈ $v2».subst(/ ^ <[$%@]> /) {
-                    my $weight = 2 * +((%testArgs{$k2}:exists) && ($k1 ∈ %testArgs{$k2} || $k1 ∈ %testArgs{$k2}».subst(/ ^ <[$%@]> /)));
-                    $weight += +((%funcArgs{$k2}:exists) && ($k1 ∈ %funcArgs{$k2} || $k1 ∈ %funcArgs{$k2}».subst(/ ^ <[$%@]> /)));
+                    my $weight = +((%funcArgs{$k2}:exists) && ($k1 ∈ %funcArgs{$k2} || $k1 ∈ %funcArgs{$k2}».subst(/ ^ <[$%@]> /)));
+                    $weight += 2 * +((%testArgs{$k2}:exists) && ($k1 ∈ %testArgs{$k2} || $k1 ∈ %testArgs{$k2}».subst(/ ^ <[$%@]> /)));
+                    $weight += 4 * +((%initialArgs{$k2}:exists) && ($k1 ∈ %initialArgs{$k2} || $k1 ∈ %initialArgs{$k2}».subst(/ ^ <[$%@]> /)));
+                    $weight += 8 * +((%terminationArgs{$k2}:exists) && ($k1 ∈ %terminationArgs{$k2} || $k1 ∈ %terminationArgs{$k2}».subst(/ ^ <[$%@]> /)));
                     %( from => $k1, to => $k2, :$weight )
                 }
             });
@@ -259,11 +301,79 @@ class LLM::Graph
         # Make graph
         $!graph = Graph.new(@edges):d;
 
-        # Verify
-        die 'Cyclic prompt dependencies are not supported.'
-        unless $!graph.is-acyclic;
+        # Identify and validate strongly connected components. 
+        # Graph.connected-components is Tarjan Strongly Connected Components (SCCs) for directed graphs. 
+        # A singleton component is cyclic only when it has an explicit self-reference.
+        @!cycle-plans = self!make-cycle-plans;
 
         return self;
+    }
+
+    method !make-cycle-plans() {
+        my @plans;
+
+        for $!graph.connected-components -> @component {
+            my @cycle-nodes = @component.grep({ %!nodes{$_}:exists }).Array;
+            next unless @cycle-nodes.elems;
+
+            my $is-cycle = @cycle-nodes.elems > 1 ||
+                    (@cycle-nodes.elems == 1 && $!graph.has-edge(@cycle-nodes[0], @cycle-nodes[0]));
+            next unless $is-cycle;
+
+            my @anchors = @cycle-nodes.grep({ %!nodes{$_}<initial-value>:exists }).Array;
+            die 'A cyclic component requires exactly one node with "initial-value": ' ~ @cycle-nodes.sort.join(', ') ~ '.'
+            unless @anchors.elems == 1;
+
+            my $anchor = @anchors[0];
+            die "Loop anchor '$anchor' requires a positive \"max-iterations\" value."
+            unless %!nodes{$anchor}<max-iterations>:exists &&
+                    %!nodes{$anchor}<max-iterations> ~~ Int:D &&
+                    %!nodes{$anchor}<max-iterations> > 0;
+
+            my @misplaced-controls = @cycle-nodes.grep({
+                $_ ne $anchor &&
+                        ((%!nodes{$_}<initial-value>:exists) ||
+                         (%!nodes{$_}<termination-function>:exists) ||
+                         (%!nodes{$_}<max-iterations>:exists))
+            }).Array;
+            die 'Loop controls must be specified on the anchor node ' ~
+                    "'$anchor'; found controls on " ~ @misplaced-controls.sort.join(', ') ~ '.'
+            if @misplaced-controls.elems;
+
+            # The anchor carries the previous iteration's state. 
+            # Removing it must leave an acyclic body, otherwise 
+            # there are multiple feedback points and the evaluation order is ambiguous.
+            my @body = @cycle-nodes.grep(* ne $anchor).Array;
+            if @body.elems {
+                my @body-edges = $!graph.edges(:dataset).grep({
+                    $_<from> ∈ @body && $_<to> ∈ @body
+                }).Array;
+                my $body-graph = Graph.new(@body, @body-edges):d;
+                my $has-residual-cycle = $body-graph.connected-components.grep(-> @part {
+                    @part.elems > 1 || (@part.elems == 1 && $body-graph.has-edge(@part[0], @part[0]))
+                }).elems > 0;
+                die 'Cyclic component has more than one feedback loop after removing anchor ' ~
+                        "'$anchor': " ~ @cycle-nodes.sort.join(', ') ~ '.'
+                if $has-residual-cycle;
+            }
+
+            @plans.push({
+                anchor => $anchor,
+                cycle-nodes => @cycle-nodes.Array,
+                body-nodes => @body,
+                max-iterations => %!nodes{$anchor}<max-iterations>
+            });
+        }
+
+        # Loop controls are meaningful only on a cyclic component.
+        for %!nodes.kv -> $name, %node {
+            if ((%node<initial-value>:exists) || (%node<termination-function>:exists) || (%node<max-iterations>:exists)) &&
+                    !@plans.first({ $name ∈ $_<cycle-nodes> }, :k).defined {
+                die "Loop controls on node '$name' require a cyclic dependency component.";
+            }
+        }
+
+        return @plans.Array;
     }
 
     #======================================================
@@ -351,6 +461,128 @@ class LLM::Graph
             await(Promise.allof(@jobs));
             @jobs.map(*.result).Array
         };
+    }
+
+    #======================================================
+    # Cyclic evaluation
+    #======================================================
+
+    method eval-cycle-inputs(@dependencies, :$pos-arg = '', :%named-args = %()) {
+        my %inputs = @dependencies.map({
+            $_ => self.eval-node($_, :$pos-arg, :%named-args)
+        });
+
+        my @inputPromises = %inputs.grep({ $_.value ~~ Promise:D })».value;
+        if @inputPromises {
+            my $allDone = Promise.allof(@inputPromises);
+            note "Awaiting for the results of {%inputs.grep({ $_.value ~~ Promise:D })».key}"
+            if $!progress-reporting;
+            await($allDone);
+            %inputs .= map({ $_.value ~~ Promise:D ?? ($_.key => $_.value.result) !! $_ });
+        }
+
+        return %inputs;
+    }
+
+    method invoke-cycle-function($node, %inputs, :$pos-arg = '') {
+        my $result;
+        if %!nodes{$node}<listable-llm-function>:exists {
+            $result = self.eval-threaded-func(
+                    %!nodes{$node}<listable-llm-function>,
+                    %inputs,
+                    :$pos-arg);
+        } else {
+            my &func = %!nodes{$node}<eval-function> // %!nodes{$node}<llm-function>;
+            $result = self.eval-func(&func, %inputs, :$pos-arg);
+        }
+
+        if $result ~~ Promise:D {
+            await($result);
+            $result = $result.result;
+        }
+        return $result;
+    }
+
+    method eval-cycle-initial-value($anchor, :$pos-arg = '', :%named-args = %()) {
+        # A supplied anchor value starts a new run, rather than bypassing the loop.
+        # It intentionally takes precedence over the initial-value callable.
+        return %named-args{$anchor} if %named-args{$anchor}:exists;
+
+        my @dependencies = |(%!nodes{$anchor}<initial-value-input> // []);
+        my %inputs = self.eval-cycle-inputs(@dependencies, :$pos-arg, :%named-args);
+        my $result = self.eval-func(%!nodes{$anchor}<initial-value>, %inputs, :$pos-arg);
+        if $result ~~ Promise:D {
+            await($result);
+            $result = $result.result;
+        }
+        return $result;
+    }
+
+    method eval-cycle-anchor($anchor, :$pos-arg = '', :%named-args = %()) {
+        %!nodes{$anchor}<test-function-result>:delete;
+        if !self.eval-test-node($anchor, :$pos-arg, :%named-args) {
+            return %!nodes{$anchor}<result>;
+        }
+
+        my @dependencies = |(%!nodes{$anchor}<input> // []);
+        my %inputs = self.eval-cycle-inputs(@dependencies, :$pos-arg, :%named-args);
+        return self.invoke-cycle-function($anchor, %inputs, :$pos-arg);
+    }
+
+    method cycle-terminated($anchor, :$pos-arg = '', :%named-args = %()) {
+        return False without %!nodes{$anchor}<termination-function>;
+
+        my @dependencies = |(%!nodes{$anchor}<termination-function-input> // []);
+        my %inputs = self.eval-cycle-inputs(@dependencies, :$pos-arg, :%named-args);
+        my $result = self.eval-func(%!nodes{$anchor}<termination-function>, %inputs, :$pos-arg);
+        if $result ~~ Promise:D {
+            await($result);
+            $result = $result.result;
+        }
+        return so $result;
+    }
+
+    method eval-cycle(%plan, :$pos-arg = '', :%named-args = %()) {
+        my $anchor = %plan<anchor>;
+        my @cycle-nodes = |%plan<cycle-nodes>;
+        my @body-nodes = |%plan<body-nodes>;
+        my %iteration-args = %named-args.clone;
+        %iteration-args{$anchor}:delete;
+
+        # A cyclic component is stateful only within one eval call. 
+        # Do not reuse prior-run state, but preserve an explicitly supplied anchor.
+        for @cycle-nodes -> $node {
+            %!nodes{$node}<result>:delete;
+            %!nodes{$node}<test-function-result>:delete;
+        }
+
+        %!nodes{$anchor}<result> = self.eval-cycle-initial-value(
+                $anchor, :$pos-arg, :%named-args);
+
+        my $iterations = 0;
+        my $termination-reason = 'max-iterations';
+        for ^%plan<max-iterations> {
+            # Body values are recomputed for every pass; 
+            # the anchor remains available as the state of the previous pass until it is updated.
+            for @body-nodes -> $node {
+                %!nodes{$node}<result>:delete;
+                %!nodes{$node}<test-function-result>:delete;
+                self.eval-node($node, :$pos-arg, named-args => %iteration-args);
+            }
+
+            %!nodes{$anchor}<result> = self.eval-cycle-anchor(
+                    $anchor, :$pos-arg, named-args => %iteration-args);
+            $iterations++;
+
+            if self.cycle-terminated($anchor, :$pos-arg, named-args => %iteration-args) {
+                $termination-reason = 'termination-function';
+                last;
+            }
+        }
+
+        %!nodes{$anchor}<iteration-count> = $iterations;
+        %!nodes{$anchor}<termination-reason> = $termination-reason;
+        return self;
     }
 
     # This method's code is almost the same as the code of eval-node -- should be refactored.
@@ -492,11 +724,21 @@ class LLM::Graph
         # Determine result nodes
         my @resNodes = do given $nodes {
             when Whatever {
-                $!graph.vertex-out-degree(:p).grep({ $_.value == 0 })».key
+                my @terminal-nodes = $!graph.vertex-out-degree(:p).grep({ $_.value == 0 })».key;
+                my @terminal-anchors;
+                for @!cycle-plans -> %plan {
+                    my @cycle-nodes = |%plan<cycle-nodes>;
+                    if @cycle-nodes.grep(-> $node {
+                        ($!graph.adjacency-map{$node} // {}).keys.grep({ $_ ∉ @cycle-nodes }).elems > 0
+                    }).elems == 0 {
+                        @terminal-anchors.push(%plan<anchor>);
+                    }
+                }
+                [|@terminal-nodes, |@terminal-anchors].unique.Array
             }
 
             when $_ ~~ Str:D && (%!nodes{$_}:exists) {
-                [$, ]
+                [$nodes, ]
             }
 
             when $_ ~~ (List:D | Array:D | Seq:D) && $_.all ~~ Str:D && ([&&] $_.map(-> $k { %!nodes{$k}:exists })) {
@@ -514,22 +756,71 @@ class LLM::Graph
 
         # Expand the hashmap of each node with inputs
         for %!nodes.kv -> $k, %v {
-            %!nodes{$k} = [|%v , input => [], test-function-input => [], result => Nil].Hash;
+            %!nodes{$k} = [|%v , input => [], test-function-input => [], initial-value-input => [], termination-function-input => [], result => Nil].Hash;
             with $gr.adjacency-map{$k} {
                 if %v<test-function>:exists {
-                    # See how the dependency graph is made -- test-function input edges have weight 2 or 3
-                    %!nodes{$k}<input> = $gr.adjacency-map{$k}.grep({ $_.value != 2 }).Hash.keys.Array;
-                    %!nodes{$k}<test-function-input> = $gr.adjacency-map{$k}.grep({ $_.value >= 2 }).Hash.keys.Array;
-                } else {
-                    %!nodes{$k}<input> = $gr.adjacency-map{$k}.keys.Array;
+                    # Edge weights are dependency bit flags: 1 = node
+                    # function, 2 = test, 4 = initializer, 8 = terminator.
+                    %!nodes{$k}<test-function-input> = $gr.adjacency-map{$k}.grep({ $_.value +& 2 }).Hash.keys.Array;
                 }
+                %!nodes{$k}<input> = $gr.adjacency-map{$k}.grep({ $_.value +& 1 }).Hash.keys.Array;
+                %!nodes{$k}<initial-value-input> = $gr.adjacency-map{$k}.grep({ $_.value +& 4 }).Hash.keys.Array;
+                %!nodes{$k}<termination-function-input> = $gr.adjacency-map{$k}.grep({ $_.value +& 8 }).Hash.keys.Array;
             }
         }
 
+        # Identify which cycle components are needed for the requested output nodes.
+        # This preserves the existing partial-evaluation behavior.
+        my %needed;
+        sub mark-dependencies($node) {
+            return if %needed{$node}:exists;
+            %needed{$node} = True;
+            for ($gr.adjacency-map{$node} // {}).keys -> $dependency {
+                mark-dependencies($dependency);
+            }
+        }
+        mark-dependencies($_) for @resNodes;
+
+        # Components form a DAG. Evaluate cycles only after any other needed
+        # cyclic component on which they depend has completed.
+        my @pending = @!cycle-plans.grep({
+            (%needed.keys (&) $_<cycle-nodes>).elems > 0
+        }).Array;
+        my %cycle-anchors = @pending.map({ $_<anchor> => True }).Hash;
+        while @pending {
+            my $ready-index;
+            for ^@pending.elems -> $i {
+                my %candidate = @pending[$i];
+                my @dependencies = %candidate<cycle-nodes>.map({
+                    ($gr.adjacency-map{$_} // {}).keys
+                }).flat.unique.Array;
+                my $blocked = False;
+                for ^@pending.elems -> $j {
+                    next if $i == $j;
+                    if (@dependencies (&) @pending[$j]<cycle-nodes>).elems {
+                        $blocked = True;
+                        last;
+                    }
+                }
+                unless $blocked {
+                    $ready-index = $i;
+                    last;
+                }
+            }
+            die 'Unable to establish an evaluation order for cyclic components.'
+            unless $ready-index.defined;
+
+            my %plan = @pending[$ready-index];
+            @pending.splice($ready-index, 1);
+            self.eval-cycle(%plan, :$pos-arg, :%named-args);
+        }
+
         # For each result node recursively evaluate its inputs
+        my %post-cycle-named-args = %named-args.clone;
+        %post-cycle-named-args{$_}:delete for %cycle-anchors.keys;
         for @resNodes -> $node {
             # Make sure each evaluated node has the result in its hashmap
-            self.eval-node($node, :$pos-arg, :%named-args)
+            self.eval-node($node, :$pos-arg, named-args => %post-cycle-named-args)
         }
 
         # Unwrap wrapped subs
