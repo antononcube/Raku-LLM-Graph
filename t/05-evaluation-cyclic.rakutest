@@ -1,0 +1,119 @@
+use v6.d;
+use Test;
+
+use LLM::Graph;
+use Graph;
+
+plan *;
+
+subtest {
+    my %rules =
+            refine => {
+                eval-function => sub ($refine) { $refine + 1 },
+                initial-value => sub ($seed) { $seed },
+                max-iterations => 3
+            };
+
+    my $g = LLM::Graph.new(%rules, :!async);
+    isa-ok $g.create-graph.graph, Graph:D, 'self-referential graph is created';
+    ok $g.graph.has-edge('refine', 'refine'), 'self-reference is represented as an edge';
+
+    is $g.eval(seed => 10).nodes<refine><result>, 13,
+            'self-loop runs for the configured number of updates';
+    is $g.nodes<refine><iteration-count>, 3, 'iteration count is recorded';
+    is $g.nodes<refine><termination-reason>, 'max-iterations', 'maximum is recorded as stop reason';
+
+    is $g.eval(seed => 10, refine => 20).nodes<refine><result>, 23,
+            'an explicit anchor result becomes the initial state';
+}, 'bounded self loop and explicit anchor state';
+
+subtest {
+    my %rules =
+            json-record => {
+                eval-function => sub ($json-record) { $json-record + 1 },
+                initial-value => sub ($start) { $start },
+                termination-function => sub ($json-record) { $json-record >= 2 },
+                max-iterations => 5
+            };
+
+    my $g = LLM::Graph.new(%rules, :!async);
+    is $g.eval(start => 0).nodes<json-record><result>, 2,
+            'termination sees the completed anchor update';
+    is $g.nodes<json-record><iteration-count>, 2, 'termination stops the next pass';
+    is $g.nodes<json-record><termination-reason>, 'termination-function', 'termination reason is recorded';
+}, 'self loop termination';
+
+subtest {
+    my %rules =
+            refine => {
+                eval-function => sub ($refine) { start { $refine + 1 } },
+                initial-value => sub { 0 },
+                max-iterations => 2
+            };
+
+    my $g = LLM::Graph.new(%rules, :async);
+    is $g.eval.nodes<refine><result>, 2,
+            'cyclic state transitions await asynchronous node results';
+}, 'asynchronous self loop';
+
+subtest {
+    my %rules =
+            draft => {
+                eval-function => sub ($idea) { "draft:$idea" }
+            },
+            critique => {
+                eval-function => sub ($refine) {
+                    $refine.ends-with('!') ?? 'APPROVED' !! 'add emphasis'
+                }
+            },
+            refine => {
+                eval-function => sub ($refine, $critique) {
+                    $critique eq 'APPROVED' ?? $refine !! "$refine!"
+                },
+                initial-value => sub ($draft) { $draft },
+                termination-function => sub ($critique) { $critique eq 'APPROVED' },
+                max-iterations => 4
+            },
+            report => {
+                eval-function => sub ($refine) { "report:$refine" }
+            };
+
+    my $g = LLM::Graph.new(%rules, :!async);
+    is $g.eval(idea => 'scooter').nodes<report><result>, 'report:draft:scooter!',
+            'actor-critic loop is evaluated before a downstream node';
+    is $g.nodes<refine><iteration-count>, 2,
+            'critic approval is checked after the second critique';
+}, 'anchored actor-critic loop';
+
+subtest {
+    my %missing-anchor =
+            a => { eval-function => sub ($b) { $b } },
+            b => { eval-function => sub ($a) { $a } };
+    dies-ok { LLM::Graph.new(%missing-anchor, :!async).create-graph },
+            'a cyclic component without an anchor is rejected';
+
+    my %bad-bound =
+            a => {
+                eval-function => sub ($a) { $a },
+                initial-value => sub { 0 },
+                max-iterations => 0
+            };
+    my $g = LLM::Graph.new(%bad-bound, :!async);
+    ok !$g.has-valid-node-specs, 'non-positive max iterations fails validation';
+    dies-ok { $g.create-graph }, 'invalid loop controls prevent graph creation';
+
+    my %misplaced =
+            a => {
+                eval-function => sub ($b) { $b },
+                initial-value => sub { 0 },
+                max-iterations => 2
+            },
+            b => {
+                eval-function => sub ($a) { $a },
+                termination-function => sub { False }
+            };
+    dies-ok { LLM::Graph.new(%misplaced, :!async).create-graph },
+            'loop controls outside the anchor are rejected';
+}, 'cyclic graph validation';
+
+done-testing;

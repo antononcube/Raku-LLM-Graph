@@ -1,5 +1,9 @@
 Revision history for "LLM::Graph"
 
+0.2.0 2026-11-16
+    - Implemented evaluation of LLM-graphs with cycles.
+    - The agent skill was moved to the GitHub repository "Raku-Agent-Skills".
+
 0.1.1 2026-09-03
     - First version of the agent skill "raku-llm-graph-making" (placed in "./resources").
     - Fix: Making sure arguments that are promises for node test-functions are awaited/evaluated.

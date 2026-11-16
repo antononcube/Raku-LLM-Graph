@@ -108,5 +108,6 @@ This delivers the examples’ intended self-refinement and actor–critic workfl
 
 ```text
 Yes, an explicit anchor value acts as the initial state and takes precedence over initial-value.
-Proceed with the implementation
+The class `Graph` of the package "Graph" has the method `connected-components` for finding strongly connected components.
+Proceed with the implementation.
 ```
