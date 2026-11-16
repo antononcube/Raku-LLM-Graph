@@ -94,7 +94,7 @@ my $actorCritic = llm-graph({
 		termination-function => sub ($critique) { $critique ~~ Str:D && $critique.contains('APPROVED') },
       		max-iterations => 4
         }
-    })
+    });
 
 $actorCritic.eval({idea => 'electric scooter with one wheel'})
 ```
