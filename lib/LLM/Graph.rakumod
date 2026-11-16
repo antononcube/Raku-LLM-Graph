@@ -556,8 +556,7 @@ class LLM::Graph
             %!nodes{$node}<test-function-result>:delete;
         }
 
-        %!nodes{$anchor}<result> = self.eval-cycle-initial-value(
-                $anchor, :$pos-arg, :%named-args);
+        %!nodes{$anchor}<result> = self.eval-cycle-initial-value($anchor, :$pos-arg, :%named-args);
 
         my $iterations = 0;
         my $termination-reason = 'max-iterations';
@@ -570,8 +569,7 @@ class LLM::Graph
                 self.eval-node($node, :$pos-arg, named-args => %iteration-args);
             }
 
-            %!nodes{$anchor}<result> = self.eval-cycle-anchor(
-                    $anchor, :$pos-arg, named-args => %iteration-args);
+            %!nodes{$anchor}<result> = self.eval-cycle-anchor($anchor, :$pos-arg, named-args => %iteration-args);
             $iterations++;
 
             if self.cycle-terminated($anchor, :$pos-arg, named-args => %iteration-args) {
@@ -584,6 +582,10 @@ class LLM::Graph
         %!nodes{$anchor}<termination-reason> = $termination-reason;
         return self;
     }
+
+    #======================================================
+    # Evaluation
+    #======================================================
 
     # This method's code is almost the same as the code of eval-node -- should be refactored.
     method eval-test-node($node, :$pos-arg = '', :%named-args = %()) {
