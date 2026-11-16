@@ -584,7 +584,7 @@ class LLM::Graph
     }
 
     #======================================================
-    # Evaluation
+    # Non-cyclic evaluation
     #======================================================
 
     # This method's code is almost the same as the code of eval-node -- should be refactored.
