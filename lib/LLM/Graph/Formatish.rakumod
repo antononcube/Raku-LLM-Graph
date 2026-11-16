@@ -90,7 +90,9 @@ role LLM::Graph::Formatish does  Graph::Formatish {
         $res = $res
                 .subst('[weight=2, label=2]', '[weight=2, style=dashed]', :g)
                 .subst('[weight=1, label=1]', '[weight=1]', :g)
-                .subst('[weight=3, label=3]', '[weight=1]', :g);
+                .subst('[weight=3, label=3]', '[weight=1]', :g)
+                .subst('[weight=4, label=4]', '[weight=2, style=solid]', :g)
+                .subst('[weight=9, label=9]', '[weight=2, style=dashed]', :g);
 
         # Output format
         if $svg { $output-format = 'svg' }
